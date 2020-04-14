@@ -8,7 +8,7 @@ cat .git/config
 git config --global user.name yuebu_global
 git config --global user.email yuebu_global@qq.com
 
-git status	
+git status	’工作工/暂存区状态	
 git add <file>	'添加到暂存区
 git rm --cached gitcommand.txt
 git add gitcommand.txt
@@ -17,6 +17,12 @@ git log --pretty=oneline	'查看历史记录
 git log --oneline
 git reflog
 git reset --hard <索引值>
+git reset --hard　hard＾＾＾ 	'一个^后退一个版本
+git reset --hard　hard~3	‘后退三个版本    修改工作区、暂存区、本地库
+              --soft   <>	 '只改本地库	
+              --mixed   <>	 '只改本地库和暂存区
+git help reset	'帮助
+
 vim编辑器
 	：set nu	'显示行号
 	i	‘插入
