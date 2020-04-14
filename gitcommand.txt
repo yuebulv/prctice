@@ -28,13 +28,17 @@ git diff <本地库中历史版本><文件名>	’工作区和本地库比较
 	不带文件名比较多个文件
 git branch -v	'查看分支
 git branch <分支名>	‘创建分支
-git checkout <分支名>	’切换分支
+git checkout <分支名>	’切换分支 
 git merge <分支名>	'要切换到合并分支不是被合并分支 
 
 远程库
 git remote -v 
 git remote add origin https://github.com/yuebulv/prctice.git
 git push origin master
+git clone 远程地址
+	pull=fetch+merge
+git fetch [远程库地址别名][远程分支名]
+git merge [远程库地址别名/远程分支名]
 
 vim编辑器
 	：set nu	'显示行号
