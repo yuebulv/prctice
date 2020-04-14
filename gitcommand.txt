@@ -31,6 +31,10 @@ git branch <分支名>	‘创建分支
 git checkout <分支名>	’切换分支
 git merge <分支名>	'要切换到合并分支不是被合并分支 
 
+远程库
+git remote -v 
+git remote add origin https://github.com/yuebulv/prctice.git
+git push origin master
 
 vim编辑器
 	：set nu	'显示行号
