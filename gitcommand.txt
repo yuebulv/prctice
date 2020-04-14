@@ -12,10 +12,11 @@ git status
 git add <file>
 git rm --cached gitcommand.txt
 git add gitcommand.txt
-
+git commit -m "my second commit" gitcommadn.txt
 vim编辑器
-	：set nu
-	i
-	:wq
+	：set nu	'显示行号
+	i	‘插入
+	ESC	'
+	:wq	’退出
 vim <file> 
 
