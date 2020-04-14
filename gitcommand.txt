@@ -4,13 +4,18 @@ cd prc/
 ll
 git init
 ll .git/
-
-
-
-
-
-
-
 cat .git/config
 git config --global user.name yuebu_global
 git config --global user.email yuebu_global@qq.com
+
+git status
+git add <file>
+git rm --cached gitcommand.txt
+git add gitcommand.txt
+
+vim编辑器
+	：set nu
+	i
+	:wq
+vim <file> 
+
