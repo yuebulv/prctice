@@ -8,11 +8,15 @@ cat .git/config
 git config --global user.name yuebu_global
 git config --global user.email yuebu_global@qq.com
 
-git status
-git add <file>
+git status	
+git add <file>	'添加到暂存区
 git rm --cached gitcommand.txt
 git add gitcommand.txt
-git commit -m "my second commit" gitcommadn.txt
+git commit -m "my second commit" gitcommadn.txt	'添加到本地库
+git log --pretty=oneline	'查看历史记录
+git log --oneline
+git reflog
+git reset --hard <索引值>
 vim编辑器
 	：set nu	'显示行号
 	i	‘插入
