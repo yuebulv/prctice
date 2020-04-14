@@ -1,0 +1,16 @@
+ll -la
+mkdir prc
+cd prc/
+ll
+git init
+ll .git/
+
+
+
+
+
+
+
+cat .git/config
+git config --global user.name yuebu_global
+git config --global user.email yuebu_global@qq.com
