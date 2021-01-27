@@ -47,3 +47,6 @@ vim编辑器
 	:wq	’退出
 vim <file> 
 
+pip install pyinstaller
+pyinstaller.exe --onefile --windowde app.py 封装
+
