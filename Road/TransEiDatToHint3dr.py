@@ -301,7 +301,8 @@ def whetherContainTheKeyInDmxfile(key,path_Dmxfile):
         sys.exit()
     else:
         # f'^{key}\d*\\t.+(?=\\n)'
-        regex=f'{key}\\d*[\t| ]'
+        key=key.replace('.','\.')
+        regex=f'(?<!\d){key}\\d*[\t| ]'
         data_dmx=re.findall(regex,data_dmx,re.MULTILINE)
         return data_dmx
         dmxfile.close()
