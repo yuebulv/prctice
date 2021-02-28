@@ -4,6 +4,35 @@ import tkinter as tk
 import os
 import pymysql
 import road
+def getCrossSectionOf3dr(pathof3dr,chainage='all'):
+    #查找pathof3dr中给定桩号的横断面信息cross_section，桩号缺省时查找全部桩号
+    prjpath=pathof3dr
+    chainage=chainage.strip()
+    if os.path.exists(prjpath):
+        if chainage.lower()=='all':
+            regx=r'^[\t\f ]*[a-zA-Z]?(?:\d+|\d+\.\d+)[\t\f ]*[\n](?:.+[\n\r])+'   #提取3dr中横断面信息
+        elif len(chainage)==0:
+            pass
+        else:
+            temp=road.cutInvalidWords_chainage(chainage)
+            try:
+                chainage=temp[0]+temp[1]
+            except:
+                pass
+            if chainage.find('.')==-1:
+                regx = f'^[\t\f ]*[a-zA-Z]?(?:{chainage}(?:\.0+)?)[\t\f ]*[\n](?:.+[\n\r])+'
+            else:
+                regx =f'^[\t\f ]*[a-zA-Z]?(?:{chainage}0*)[\t\f ]*[\n](?:.+[\n\r])+'
+        if len(chainage)==0:
+            return ''
+        else:
+            file=open(prjpath,'r')
+            data_file=file.read()
+            cross_sections=re.findall(regx,data_file,re.MULTILINE)
+            return cross_sections
+            file.close()
+    else:
+        temp=road.gui_filenotfine(prjpath)
 def setupChainageTable(prjname,prjpath):
     #功能：建立chainage表
     #步骤：
@@ -92,6 +121,22 @@ def FindXPathFromPrj(prjpath,typeOfFindX):
         else:
             return res[0]
         prjfile.close()
+def cutInvalidWords_chainage(chainage):
+    #去除桩中无效数字或者字母，如输入A20.010 ，输出res  (res[0]=A,res[1]=20.01)
+    res=[]
+    chainage=chainage.strip()
+    regx=r'(?<!\S)[a-zA-Z]?(\d+(?:\.\d+)?)(?!\S)'
+    temp1=re.findall(regx,chainage,re.MULTILINE)
+    try:
+        temp1[0]='{:g}'.format(float(temp1[0]))
+    except:
+        return res
+    else:
+        regx = r'(?<!\S)([a-zA-Z]?)\d+(?:\.\d+)?(?!\S)'
+        temp2 = re.findall(regx, chainage, re.MULTILINE)
+        res.append(temp2[0])
+        res.append(temp1[0])
+        return res
 def gui_filenotfine(path):
     # 功能：path文件不存在提示框
     rootb = tk.Tk()
