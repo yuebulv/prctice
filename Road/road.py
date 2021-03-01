@@ -29,8 +29,8 @@ def getCrossSectionOf3dr(pathof3dr,chainage='all'):
             file=open(prjpath,'r')
             data_file=file.read()
             cross_sections=re.findall(regx,data_file,re.MULTILINE)
-            return cross_sections
             file.close()
+            return cross_sections
     else:
         temp=road.gui_filenotfine(prjpath)
 def setupChainageTable(prjname,prjpath):
@@ -90,7 +90,33 @@ def creatMysqlChainageTable(databaseName):
     cursor.close()
     conn.commit()
     conn.close()
-def FindXPathFromPrj(prjpath,typeOfFindX):
+def creatMysqlDrainageDitchTable(databaseName):
+    #在databaseName数据库中新建drainageDitch表
+    # chainage    左右侧 3dr中起始位置     线段个数   平距  高差     平距  高差...
+    prjname=databaseName
+    conn = pymysql.connect(user = "root",passwd = "sunday")#,db = "mysql")
+    cursor = conn.cursor()
+    conn.select_db(prjname)
+    cursor.execute('drop table if exists drainageDitch')
+    sql = """CREATE TABLE IF NOT EXISTS `drainageDitch` (
+          `chainage` varchar(255),
+          `左右侧` varchar(255) NOT NULL ,
+          `3dr中起始位置` int(11) ,
+          `线段个数` int(11) ,
+          PRIMARY KEY (`chainage`)
+        ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=0"""
+    cursor.execute(sql)
+    for i in range(9):
+        temp='平距'+str(i)
+        sql=f'alter table drainageDitch add {temp}'
+        cursor.execute(sql)
+        temp='高差'+str(i)
+        sql=f'alter table drainageDitch add {temp}'
+        cursor.execute(sql)
+    cursor.close()
+    conn.commit()
+    conn.close()
+def findXPathFromPrj(prjpath,typeOfFindX):
     #查找纬地项目文件prjpath中X文件路径，例FindXPathFromPrj(prjpath,3dr)
     path_Dmxfile=prjpath
     typeOfFindX=typeOfFindX.lower()
@@ -101,6 +127,7 @@ def FindXPathFromPrj(prjpath,typeOfFindX):
         sys.exit()
     else:
         data_prj=prjfile.read()
+        prjfile.close()
         data_prj=data_prj.lower()
         regx = f'\*\.{typeOfFindX}\).*=\s*(\S*)\s*(?=\n)'
         res = re.findall(regx, data_prj, re.MULTILINE)
@@ -120,7 +147,6 @@ def FindXPathFromPrj(prjpath,typeOfFindX):
                     return ""
         else:
             return res[0]
-        prjfile.close()
 def cutInvalidWords_chainage(chainage):
     #去除桩中无效数字或者字母，如输入A20.010 ，输出res  (res[0]=A,res[1]=20.01)
     res=[]
