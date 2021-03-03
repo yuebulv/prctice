@@ -4,6 +4,42 @@ import tkinter as tk
 import os
 import pymysql
 import road
+def insertDataToTableDrainageDitchFrom3dr(pathOf3dr,chainage,prjname):
+    #功能：将3dr中桩号为chainage边沟/排水沟信息插入到DrainageDitch表中
+    # road.getCrossSectionOf3dr得到3dr中桩号chainagea横断面数据
+    # findDrainageDitchFromLine找出边沟/排水沟信息
+    # 将边沟/排水沟信息存到数据库prjname表drainageditch中
+    threedrpath=pathOf3dr
+    conn = pymysql.connect(user="root", passwd="sunday")  # ,db = "mysql")
+    cursor = conn.cursor()
+    conn.select_db(prjname)
+    cross_sections=road.getCrossSectionOf3dr(threedrpath,chainage)
+    for data in cross_sections:
+        cross_section=re.split(r'\n',data)
+        i=0
+        for temp in cross_section:
+            temp=temp.strip()
+            if len(temp)>0:
+                cross_section[i]=temp
+                i=i+1
+        for i_LOrR in [1,2]:
+            drainage=road.findDrainageDitchFromLine(cross_section[i_LOrR])
+            # print(i_LOrR,cross_section[0])
+            # print(drainage)
+            if drainage!=False:
+                sql="insert into drainageditch(chainage,左右侧,3dr中起始位置,线段个数) values(%s,%s,%s,%s)"
+                insert = cursor.execute(sql, (cross_section[0], i_LOrR, int(drainage[0]), int(drainage[1])))
+                for i_drainage in range(int(drainage[1])):
+                    sql = f'update drainageditch set 宽度{i_drainage}={float(drainage[i_drainage*3 + 2])} where chainage ="{cross_section[0]}" and 左右侧={i_LOrR}'
+                    update_drain = cursor.execute(sql)
+                    sql = f'update drainageditch set 高度{i_drainage}={float(drainage[i_drainage*3 + 3])} where chainage ="{cross_section[0]}" and 左右侧={i_LOrR}'
+                    update_drain = cursor.execute(sql)
+                    sql = f'update drainageditch set 坡度{i_drainage}={float(drainage[i_drainage*3 + 4])} where chainage ="{cross_section[0]}" and 左右侧={i_LOrR}'
+                    update_drain=cursor.execute(sql)
+    cursor.close()
+    conn.commit()
+    conn.close()
+    print("边沟/排水沟信息已存入drainageditch表")
 def findDrainageDitchFromLine(linedata,drainageFilters='default'):
     #功能：根据给定的边沟/排水沟判定条件drainageFilters，从一条线linedata中找出边沟/排水沟，返回res=[6,3],表示linedata中第6段线开始为边沟/排水沟，边沟/排水沟由3条线段组成。
     #(linedata格式要像3dr左侧或右侧横断面格式，组数、平距、高差.....）
@@ -28,6 +64,9 @@ def findDrainageDitchFromLine(linedata,drainageFilters='default'):
     glist={}
     try:
         while i <float(pointsOfLinedata[0])-1:
+            if abs(float(pointsOfLinedata[(i+2)*2-1]))-abs(float(pointsOfLinedata[(i+2-1)*2-1]))<0:
+                print("挡墙")
+                return False    #大概率是挡墙
             widthOfPoint=float(pointsOfLinedata[(i+2)*2-1])-float(pointsOfLinedata[(i+2-1)*2-1])
             widthOfPoint=abs(float('{:.3f}'.format(widthOfPoint)))
             heightOfPoint = float(pointsOfLinedata[(i + 2) * 2])-float(pointsOfLinedata[(i + 2-1) * 2])
@@ -99,7 +138,7 @@ def getCrossSectionOf3dr(pathof3dr,chainage='all'):
             return ''
         else:
             file=open(prjpath,'r')
-            data_file=file.read()
+            data_file=file.read().upper()
             cross_sections=re.findall(regx,data_file,re.MULTILINE)
             file.close()
             return cross_sections
@@ -171,11 +210,12 @@ def creatMysqlDrainageDitchTable(databaseName):
     conn.select_db(prjname)
     cursor.execute('drop table if exists drainageDitch')
     sql = """CREATE TABLE IF NOT EXISTS `drainageDitch` (
+          `id` int(6) NOT NULL AUTO_INCREMENT,
           `chainage` varchar(50),
           `左右侧` int(1) NOT NULL ,
           `3dr中起始位置` int(3) ,
-          `线段个数` int(3) ,
-          PRIMARY KEY (`chainage`)
+          `线段个数` int(3),
+          PRIMARY KEY (`id`)
         ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=0"""
     cursor.execute(sql)
     for i in range(9):
@@ -235,7 +275,7 @@ def cutInvalidWords_chainage(chainage):
     else:
         regx = r'(?<!\S)([a-zA-Z]?)\d+(?:\.\d+)?(?!\S)'
         temp2 = re.findall(regx, chainage, re.MULTILINE)
-        res.append(temp2[0])
+        res.append(temp2[0].upper())
         res.append(temp1[0])
         return res
 def gui_filenotfine(path):
