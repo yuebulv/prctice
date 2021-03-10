@@ -250,11 +250,29 @@ def findXPathFromPrj(prjpath,typeOfFindX):
             if os.path.exists(res[0]):
                 return res[0]
             else:
-                regx=r'\w+\.\w+'
+                regx=r'[\u4e00-\u9fa5_a-zA-Z0-9]+.\w+'
                 temp=re.findall(regx,res[0],re.MULTILINE)
-                regx=r'(.+\\)\w+\.\w+$'
-                temppath=re.findall(regx,path_Dmxfile,re.MULTILINE)
-                xpath=temppath[0]+temp[0]
+
+                res[0]=res[0].replace('/','\\')
+                res[0]=res[0].split('\\')
+                res[0]=res[0][len(res[0])-1]
+
+                if res[0].find('.') ==-1:
+                    return ""
+                else:
+                    path_Dmxfile=path_Dmxfile.replace('/','\\')
+                    path_dmxfilelist=path_Dmxfile.split('\\')
+                    path_dmxfilelist[len(path_dmxfilelist)-1]=res[0]
+                    xpath='\\'.join(path_dmxfilelist)
+
+
+                # regx=r'(.+\\)\S+\.\w+$'
+                # temppath=re.findall(regx,path_Dmxfile,re.MULTILINE)
+                # print('res',res)
+                # print('temp',temp)
+                # print('temppath',temppath)
+                print('path_dmxfile',xpath)
+                # xpath=temppath[0]+temp[0]
                 if os.path.exists(xpath):
                     return xpath
                 else:
