@@ -17,13 +17,13 @@ from timeit import default_timer
 
 host = 'localhost'
 port = 3306
-db = '长寿支线'              #????????????????????????????????????????????????????????????????????????????????????
+#db = '长寿支线'              #????????????????????????????????????????????????????????????????????????????????????
 user = 'root'
 password = 'sunday'
 
 
 # ---- 用pymysql 操作数据库
-def get_connection():
+def get_connection(db):
     conn = pymysql.connect(host=host, port=port, db=db, user=user, password=password)
     return conn
 
@@ -31,7 +31,7 @@ def get_connection():
 # ---- 使用 with 的方式来优化代码
 class UsingMysql(object):
 
-    def __init__(self, commit=True, log_time=True, log_label='总用时'):
+    def __init__(self, commit=True, log_time=True, log_label='总用时',db=''):
         """
 
         :param commit: 是否在最后提交事务(设置为False的时候方便单元测试)
@@ -41,14 +41,16 @@ class UsingMysql(object):
         self._log_time = log_time
         self._commit = commit
         self._log_label = log_label
-
-    def __enter__(self,db):
+        self.db=db
+    def __enter__(self):
 
         # 如果需要记录时间
         if self._log_time is True:
             self._start = default_timer()
 
         # 在进入的时候自动获取连接和cursor
+        db=self.db
+        print(db)
         conn = get_connection(db)
         cursor = conn.cursor(pymysql.cursors.DictCursor)
         conn.autocommit = False
@@ -74,4 +76,12 @@ class UsingMysql(object):
         return self._cursor
 
 
+def check_it():
 
+    with UsingMysql(log_time=True,db='长寿支线2') as um:
+        um.cursor.execute("select count(id) as total from chainage")
+        data = um.cursor.fetchone()
+        print("-- 当前数量: %d " % data['total'])
+
+if __name__ == "__main__":
+    check_it()

@@ -47,9 +47,10 @@ import math
 
 if __name__ == "__main__":
     prjpath = r'F:\2020-10-14长寿支线\4-资料\王勇\K -12-16 - 副本\K.prj'
+    prjpath = r'D:\Download\QQ文档\297358842\FileRecv\元蔓纬地设计文件\元蔓纬地设计文件\K27改移老路调坡上报\K27+400改移地方道路.prj'
     prjname='长寿支线'
-    # temp=road.setupChainageTable(prjname,prjpath)
-    # temp=road.creatMysqlDrainageDitchTable(prjname)
+    temp=road.setupChainageTable(prjname,prjpath)
+    temp=road.creatMysqlDrainageDitchTable(prjname)
 
     chainage='A840'
     threedrpath = road.findXPathFromPrj(prjpath, '3dr')
