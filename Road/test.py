@@ -7,13 +7,23 @@ def check_it():
         print("-- 当前数量: %d " % data['total'])
 
 if __name__ == "__main__":
-    for i in [1,2]:
-        print(i)
-    # host = 'localhost'
-    # port = 3306
-    # db = '长寿支线'
-    # user = 'root'
-    # password = 'sunday'
+    res=[]
+    temp='.E:\code\python\prj\prctice.'
+    res.append(temp)
+    print(temp.find('.'))
+
+    # temp='   '
+    res[0]=''
+    print(len(res[0]))
+    res[0]=res[0].replace('/','\\')
+    print(res[0])
+    res[0]=res[0].split('\\')
+    print(res[0])
+    print(res[0][len(res[0])-1])
+    print(res)
+    print(temp)
+    print(temp[len(temp)-1])
+    print('\\'.join(temp))
 
 
 
