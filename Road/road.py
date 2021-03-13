@@ -240,6 +240,47 @@ def setupChainageTable(prjname,prjpath):
         conn.commit()
         conn.close()
         print('chainage数据导入成功')
+def creatMysqlSlopeTable(databaseName):
+    #在databaseName数据库中新建边坡表Slope
+    # 序号 chainage    左右侧(1/2) 位于边沟左右侧(0(无边沟)/1（边沟左侧）/2（边沟右内里）)	边坡类型（1填-1挖） 坡高 最大级数    【第i级平台	第i级平台坡度	第i级平台平距	第i级平台高度	第i级平台坐标x	第i级平台坐标y	第i级平台高程
+                                                                                                               # 	第i级边坡	第i级边坡坡度	第i级边坡平距	第i级边坡高度	第i级边坡坐标x	第i级边坡坐标y	第i级边坡高程】
+    tablename = 'slope'
+    prjname=databaseName
+    conn = pymysql.connect(user = "root",passwd = "sunday")#,db = "mysql")
+    cursor = conn.cursor()
+    conn.select_db(prjname)
+    cursor.execute(f'drop table if exists {tablename}')
+    sql = """CREATE TABLE IF NOT EXISTS `slope` (
+          `id` int(6) NOT NULL AUTO_INCREMENT,
+          `chainage` varchar(50) NOT NULL ,
+          `左右侧` int(1) NOT NULL ,
+          `3dr中起始位置` int(3) ,
+          `线段个数` int(3),
+          `位于边沟左右侧` int(1) ,
+          `边坡类型` int(1) ,
+          `坡高` int(4) ,
+          `最大级数` int(1) ,
+          PRIMARY KEY (`id`)
+        ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=0"""
+    cursor.execute(sql)
+    for i in range(9):
+        for name in ['S','P']:
+            temp=str(i)+'级'+name
+            sql=f'alter table {tablename} add {temp} float(10)'
+            cursor.execute(sql)
+            temp=name+'宽度'+str(i)
+            sql=f'alter table {tablename} add {temp} float(10)'
+            cursor.execute(sql)
+            temp=name+'高度'+str(i)
+            sql=f'alter table {tablename} add {temp} float(10)'
+            cursor.execute(sql)
+            temp=name+'坡度'+str(i)
+            sql=f'alter table {tablename} add {temp} float(10)'
+            cursor.execute(sql)
+    cursor.close()
+    conn.commit()
+    conn.close()
+    print('slope表创建成功')
 def creatMysqlChainageTable(databaseName):
     #在databaseName数据库中新建chainage表
     prjname=databaseName
