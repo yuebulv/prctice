@@ -44,17 +44,51 @@ import os
 import road
 import pymysql
 import math
+import mysql
+def getChainageFromChainagetable(db,chainage='all'):
+    #功能:找出桩号chainage（变量）在数据库db数据表Chainage（常量）中对应的所有数据
+    #桩号相距theChainageRange=0.01内，视为同一桩号
+    theChainageRange = 0.01
+    with mysql.UsingMysql(log_time=False,db=db) as um:
+        if chainage.lower()=='all':
+            sql=f"select *  from chainage"
+        else:
+            sql=f"select *  from chainage where chainage='{chainage}'"
+        um.cursor.execute(sql)
+        data = um.cursor.fetchone()
+        return data
 
 if __name__ == "__main__":
     prjpath = r'F:\2020-10-14长寿支线\4-资料\王勇\K -12-16 - 副本\K.prj'
-    prjpath = r'D:\Download\QQ文档\297358842\FileRecv\元蔓纬地设计文件\元蔓纬地设计文件\K27改移老路调坡上报\K27+400改移地方道路.prj'
+    # prjpath = r'D:\Download\QQ文档\297358842\FileRecv\元蔓纬地设计文件\元蔓纬地设计文件\K27改移老路调坡上报\K27+400改移地方道路.prj'
     prjname='长寿支线'
-    temp=road.setupChainageTable(prjname,prjpath)
-    temp=road.creatMysqlDrainageDitchTable(prjname)
+    # temp=road.setupChainageTable(prjname,prjpath)
+    # temp=road.creatMysqlDrainageDitchTable(prjname)
+    chainage='a0'
+    try:
+        chainage=road.getChainageFromChainagetable(prjname,chainage,True)[0]    #返回数据表chainage中等值桩号
+    except:
+        print('桩号错误')
+    else:
+        # threedrpath = road.findXPathFromPrj(prjpath, '3dr')
+        # temp_insert=road.insertDataToTableDrainageDitchFrom3dr(threedrpath, chainage,prjname)
+        tfpath = road.findXPathFromPrj(prjpath, 'tf')
+        tfDatas=road.getDataFromTf(tfpath,chainage)     #得到TF数据
+        for tfData_temp in tfDatas:
+            regx=r'\w+.?\w+'
+            tfData=re.findall(regx,tfData_temp,re.MULTILINE)
+            print(tfData[0],tfData[4],tfData[5])
 
-    chainage='A840'
-    threedrpath = road.findXPathFromPrj(prjpath, '3dr')
-    temp_insert=road.insertDataToTableDrainageDitchFrom3dr(threedrpath, chainage,prjname)
+            # print(len(tfData))
+            # print(tfData)
+        with mysql.UsingMysql(log_time=False,db=prjname) as um:
+            um.cursor.execute(f"select chainage,左右侧,3dr中起始位置  from drainageditch where chainage='{chainage}'")
+            data = um.cursor.fetchall()
+            print(data)
+
+
+
+
 
 
 

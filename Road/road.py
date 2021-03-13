@@ -4,6 +4,7 @@ import tkinter as tk
 import os
 import pymysql
 import road
+import mysql
 def insertDataToTableDrainageDitchFrom3dr(pathOf3dr,chainage,prjname):
     #功能：将3dr中桩号为chainage边沟/排水沟信息插入到DrainageDitch表中
     # road.getCrossSectionOf3dr得到3dr中桩号chainagea横断面数据
@@ -115,8 +116,39 @@ def findDrainageDitchFromLine(linedata,drainageFilters='default'):
             return False
     except:
         return False
+def getDataFromTf(pathOfTF,chainage='all'):
+    #功能从tfpath中查找桩号为chainage的数据，桩号缺省或桩号为all时查找全部桩号
+    prjpath = pathOfTF
+    chainage = chainage.strip()
+    if os.path.exists(prjpath):
+        if chainage.lower() == 'all':
+            regx = r'^[\t\f ]*[a-zA-Z]?(?:\d+|\d+\.\d+).+[\n\r]'  # 将tf中所有桩号信息分组提取
+        elif len(chainage) == 0:
+            road.gui_filenotfine(f'函数getDataFromTf中桩号{chainage}为空')
+            return ''
+        else:
+            temp = road.cutInvalidWords_chainage(chainage)
+            try:
+                chainage = temp[0] + temp[1]
+            except:
+                road.gui_filenotfine(f'函数getDataFromTf中桩号{chainage}错误')
+            if chainage.find('.') == -1:    #判断是整桩号还是含小数桩号
+                regx = f'^[\t\f ]*[a-zA-Z]?(?:{chainage}(?:\.0+)?)[\t\f ]+.+[\n\r]' # 将tf中桩号chainage信息提取
+            else:
+                regx = f'^[\t\f ]*[a-zA-Z]?(?:{chainage}0*)[\t\f ]+.+[\n\r]'   # 将tf中桩号chainage信息提取
+        if len(chainage) == 0:
+            return ''
+        else:
+            file = open(prjpath, 'r')
+            data_file = file.read().upper()
+            cross_sections = re.findall(regx, data_file, re.MULTILINE)
+            file.close()
+            return cross_sections
+    else:
+        temp = road.gui_filenotfine(f'函数getDataFromTf中路径{prjpath}不存在')
+        return ''
 def getCrossSectionOf3dr(pathof3dr,chainage='all'):
-    #查找pathof3dr中给定桩号的横断面信息cross_section，桩号缺省时查找全部桩号
+    #查找pathof3dr中给定桩号的横断面信息cross_section，桩号缺省或桩号为all时查找全部桩号
     prjpath=pathof3dr
     chainage=chainage.strip()
     if os.path.exists(prjpath):
@@ -144,6 +176,32 @@ def getCrossSectionOf3dr(pathof3dr,chainage='all'):
             return cross_sections
     else:
         temp=road.gui_filenotfine(prjpath)
+def getChainageFromChainagetable(db,chainage,breakchain=False):
+    #功能:找出桩号chainage（变量）在数据库db数据表Chainage（常量）中对应的桩号，
+    #breakchain=False,表示给定桩号不含断链，且返回字段chainage_naBreakChain中对应的桩号，否则返回字段chainage中桩号
+    with mysql.UsingMysql(log_time=False, db=db) as um:
+        if breakchain==True:
+            sql = f"select chainage from chainage "
+        else:
+            sql = "select chainage_noBreakChain  from chainage"
+        um.cursor.execute(sql)
+        chainage_list =road.cutInvalidWords_chainage(chainage)
+        # print(chainage_list)
+        try:
+            chainage = chainage_list[0] + chainage_list[1]
+        except:
+            return ''
+        else:
+            chainageValuesInTable_list_dic = um.cursor.fetchall()
+            chainageValuesInTable_list = [item[key] for item in chainageValuesInTable_list_dic for key in item]
+            chainageValuesInTable_list_join = '\t'.join(chainageValuesInTable_list).upper()
+            # print(chainageValuesInTable_list_join)
+            if chainage.find('.') == -1:  # 判断是整桩号还是含小数桩号
+                regx = f'(?<!\w)({chainage}(?:\.0+))(?!\w)'  # 将tf中桩号chainage信息提取
+            else:
+                regx = f'(?<!\w)({chainage}0*)(?!\w)'
+            res = re.findall(regx, chainageValuesInTable_list_join, re.MULTILINE)
+            return res
 def setupChainageTable(prjname,prjpath):
     #功能：建立chainage表
     #步骤：
@@ -250,48 +308,45 @@ def findXPathFromPrj(prjpath,typeOfFindX):
             if os.path.exists(res[0]):
                 return res[0]
             else:
-                regx=r'[\u4e00-\u9fa5_a-zA-Z0-9]+.\w+'
-                temp=re.findall(regx,res[0],re.MULTILINE)
-
+                # regx=r'[\u4e00-\u9fa5_a-zA-Z0-9]+.\w+'
+                # temp=re.findall(regx,res[0],re.MULTILINE)
                 res[0]=res[0].replace('/','\\')
                 res[0]=res[0].split('\\')
                 res[0]=res[0][len(res[0])-1]
-
                 if res[0].find('.') ==-1:
+                    msgbox = gui_filenotfine(f'findXPathFromPrj {typeOfFindX} path:{res[0]}')
                     return ""
                 else:
                     path_Dmxfile=path_Dmxfile.replace('/','\\')
                     path_dmxfilelist=path_Dmxfile.split('\\')
                     path_dmxfilelist[len(path_dmxfilelist)-1]=res[0]
                     xpath='\\'.join(path_dmxfilelist)
-
-
-                # regx=r'(.+\\)\S+\.\w+$'
-                # temppath=re.findall(regx,path_Dmxfile,re.MULTILINE)
                 # print('res',res)
                 # print('temp',temp)
                 # print('temppath',temppath)
-                print('path_dmxfile',xpath)
-                # xpath=temppath[0]+temp[0]
+
                 if os.path.exists(xpath):
+                    print(f'findXPathFromPrj {typeOfFindX} path:', xpath)
                     return xpath
                 else:
-                    msgbox=gui_filenotfine(xpath)
+                    msgbox=gui_filenotfine(f'findXPathFromPrj {typeOfFindX} path:{xpath}')
                     return ""
         else:
             return res[0]
 def cutInvalidWords_chainage(chainage):
-    #去除桩中无效数字或者字母，如输入A20.010 ，输出res  (res[0]=A,res[1]=20.01)
+    #去除桩中无效数字或者字母，如输入A20.010 ，输出res  (res[0]=A,res[1]=20.01);20.010 ，输出res  (res[0]='',res[1]=20.01)
     res=[]
     chainage=chainage.strip()
-    regx=r'(?<!\S)[a-zA-Z]?(\d+(?:\.\d+)?)(?!\S)'
+    regx=r'(?<!\S)[a-zA-Z]?(\d+(?:\.\d*)?)(?!\S)'
     temp1=re.findall(regx,chainage,re.MULTILINE)
+    # print('ctu', temp1)
     try:
+
         temp1[0]='{:g}'.format(float(temp1[0]))
     except:
         return res
     else:
-        regx = r'(?<!\S)([a-zA-Z]?)\d+(?:\.\d+)?(?!\S)'
+        regx = r'(?<!\S)([a-zA-Z]?)\d+(?:\.\d*)?(?!\S)'
         temp2 = re.findall(regx, chainage, re.MULTILINE)
         res.append(temp2[0].upper())
         res.append(temp1[0])

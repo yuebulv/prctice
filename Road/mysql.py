@@ -17,7 +17,7 @@ from timeit import default_timer
 
 host = 'localhost'
 port = 3306
-#db = '长寿支线'              #????????????????????????????????????????????????????????????????????????????????????
+#db = '长寿支线'
 user = 'root'
 password = 'sunday'
 
@@ -50,7 +50,7 @@ class UsingMysql(object):
 
         # 在进入的时候自动获取连接和cursor
         db=self.db
-        print(db)
+        # print(db)
         conn = get_connection(db)
         cursor = conn.cursor(pymysql.cursors.DictCursor)
         conn.autocommit = False
@@ -78,7 +78,7 @@ class UsingMysql(object):
 
 def check_it():
 
-    with UsingMysql(log_time=True,db='长寿支线2') as um:
+    with UsingMysql(log_time=True,db='长寿支线') as um:
         um.cursor.execute("select count(id) as total from chainage")
         data = um.cursor.fetchone()
         print("-- 当前数量: %d " % data['total'])
