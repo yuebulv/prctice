@@ -82,6 +82,8 @@ if __name__ == "__main__":
         with mysql.UsingMysql(log_time=False,db=prjname) as um:     #得到边沟数据
             um.cursor.execute(f"select chainage,左右侧,3dr中起始位置  from drainageditch where chainage='{chainage}'")
             data = um.cursor.fetchall()
+            for dic in data:
+                print(dic['左右侧'],dic['3dr中起始位置'])
             print(data)
     road.creatMysqlSlopeTable(prjname)
 
