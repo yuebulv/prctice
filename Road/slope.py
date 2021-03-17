@@ -56,37 +56,26 @@ if __name__ == "__main__":
     prjpath = r'F:\2020-10-14长寿支线\4-资料\王勇\K -12-16 - 副本\K.prj'
     # prjpath = r'D:\Download\QQ文档\297358842\FileRecv\元蔓纬地设计文件\元蔓纬地设计文件\K27改移老路调坡上报\K27+400改移地方道路.prj'
     prjname='长寿支线'
-    # #一、 生成数据表chainage
-    # road.setupChainageTable(prjname,prjpath)
-    # road.creatMysqlDrainageDitchTable(prjname)
-    chainages=['all']
-    chainage='a0'
-    # for chainage in chainages:
-    #     # 二、 生成数据表DrainageDitchTable
-    #     threedrpath = road.findXPathFromPrj(prjpath, '3dr')
-    #     temp_insert = road.insertDataToTableDrainageDitchFrom3dr(threedrpath, chainage, prjname)
+    #一、 生成数据表chainage
+    road.setupChainageTable(prjname,prjpath)
+    road.creatMysqlDrainageDitchTable(prjname)
 
-    try:
-        chainage=road.getChainageFromChainagetable(prjname,chainage,True)[0]    #返回数据表chainage中等值桩号
-    except:
-        print('桩号错误')
-    else:
-        tfpath = road.findXPathFromPrj(prjpath, 'tf')
-        tfDatas=road.getDataFromTf(tfpath,chainage)     #得到TF数据
-        for tfData_temp in tfDatas:
-            regx=r'\w+.?\w+'
-            tfData=re.findall(regx,tfData_temp,re.MULTILINE)
-            print(tfData[0],tfData[4],tfData[5])
-            # print(len(tfData))
-            # print(tfData)
-        with mysql.UsingMysql(log_time=False,db=prjname) as um:     #得到边沟数据
-            um.cursor.execute(f"select chainage,左右侧,3dr中起始位置  from drainageditch where chainage='{chainage}'")
-            data = um.cursor.fetchall()
-            for dic in data:
-                print(dic['左右侧'],dic['3dr中起始位置'])
-            print(data)
+    with mysql.UsingMysql(log_time=False, db=prjname) as um:
+        sql = f"select chainage from chainage "
+        um.cursor.execute(sql)
+        chainageValuesInTable_list_dic = um.cursor.fetchall()
+    chainageValuesInTable_list = [item[key] for item in chainageValuesInTable_list_dic for key in item]
+    chainages=chainageValuesInTable_list
+    # chainages=['all']
+    # chainage='a0'
+    # 二、 生成数据表DrainageDitchTable
+    for chainage in chainages:
+        threedrpath = road.findXPathFromPrj(prjpath, '3dr')
+        temp_insert = road.insertDataToTableDrainageDitchFrom3dr(threedrpath, chainage, prjname)
+    # 三、新建数据表slope，并导入数据
     road.creatMysqlSlopeTable(prjname)
-
+    for chainage in chainages:
+        road.insertDataFrom3drToTableSlope(prjpath, chainage, prjname)
 
 
 

@@ -41,6 +41,240 @@ def insertDataToTableDrainageDitchFrom3dr(pathOf3dr,chainage,prjname):
     conn.commit()
     conn.close()
     print("边沟/排水沟信息已存入drainageditch表")
+def insertDataFrom3drToTableSlope(prjpath, chainage, prjname):
+    '''
+    功能：将3dr中桩号为chainage边坡信息插入slope表中
+    :param prjpath: 项目路径
+    :param chainage: 桩号
+    :param prjname: 项目名称
+    :return:在数据库prjname数据表slope中生成桩号chainage的边坡信息
+    方法：
+        一、得到TF数据
+        二、得到边沟数据
+        三、根据路肩和边沟位置确定边坡范围
+            1、第i级边坡+第i级平台组成一组数据（缺失部件时用0补齐）
+            2、边坡可分为：1）路肩与边沟之间边坡；2）边沟与坡脚之间边坡
+
+    '''
+
+    try:
+        chainage = road.getChainageFromChainagetable(prjname, chainage, True)[0]  # 返回数据表chainage中等值桩号
+    except:
+        print(f'错误：数据表chainage中无桩号{chainage}')
+        return ''
+
+    # 一、得到TF数据
+    tfpath = road.findXPathFromPrj(prjpath, 'tf')
+    tfDatas = road.getDataFromTf(tfpath, chainage)
+    for tfData_temp in tfDatas:
+        regx = r'\w+.?\w+'
+        tfData = re.findall(regx, tfData_temp, re.MULTILINE)
+        # print(tfData[0], tfData[4], tfData[5])
+    # 二、得到边沟数据
+    with mysql.UsingMysql(log_time=False, db=prjname) as um:
+        um.cursor.execute(f"select chainage,左右侧,3dr中起始位置,线段个数  from drainageditch where chainage='{chainage}'")
+        drainagedataFromtable = um.cursor.fetchall()
+        # for dic in drainagedataFromtable:
+        #     print(dic['左右侧'],dic['3dr中起始位置'])
+        print('drainagedataFromtable', drainagedataFromtable)
+
+    # 三、得到边坡数据
+    threedrpath = road.findXPathFromPrj(prjpath, '3dr')
+    conn = pymysql.connect(user="root", passwd="sunday")  # ,db = "mysql")
+    cursor = conn.cursor()
+    conn.select_db(prjname)
+    cross_sections = road.getCrossSectionOf3dr(threedrpath, chainage)
+    for data in cross_sections:
+        cross_section = re.split(r'\n', data)
+        i = 0
+        #3.1取得3dr数据
+        for temp in cross_section:
+            temp = temp.strip()
+            if len(temp) > 0:
+                cross_section[i] = temp
+                i = i + 1
+        for slopePostionComparedWithdrainage in [1, 2]:  # 1表示边坡在边沟左侧，2表示边坡在边沟右侧
+            for i_LOrR in [1, 2]:  # 左右侧
+                regx = r'-?\d+.?\d*'
+                drData_list = re.findall(regx, cross_section[i_LOrR], re.MULTILINE)
+                print('drData_list', drData_list)
+                #3.2确定路肩位置
+                for i_drData_list in range(1, len(drData_list), 2):
+                    # print(f'tfData{[i_LOrR + 3]}:{tfData[i_LOrR + 3]}')
+                    # print(float(drData_list[i_drData_list]))
+                    if abs(float(tfData[i_LOrR + 3])) == abs(float(drData_list[i_drData_list])):
+                        roadShoulderPosition = (i_drData_list - 3) / 2  # 默认TF文件中第4、5列为路基左、右宽度
+                        print(f'tfdata{i_LOrR + 3}列在cross_section{i_LOrR}中的位置：第', roadShoulderPosition, '组')
+                        break
+                # 3.3确定边沟位置
+                for drainagePosition_dic in drainagedataFromtable:
+                    if drainagePosition_dic['左右侧'] == i_LOrR:
+                        drainagePosition = drainagePosition_dic['3dr中起始位置']
+                        drainageLinesCount = drainagePosition_dic['线段个数']
+                        print(f'边沟在3dr中的起始位置{i_LOrR}侧：第', drainagePosition, f'组；边沟线段个数:{drainageLinesCount}')
+                        continue
+                    else:   #不含边沟、排水沟时，边坡计入填方
+                        drainagePosition = int(drData_list[0]) - 1
+                        drainageLinesCount = 0
+                try:
+                    i_slopeStart = roadShoulderPosition + 1
+                except:
+                    print(f'桩号{chainage}中{i_LOrR}侧3dr中未找到土路肩宽度')
+                    continue
+                try:    #不含边沟、排水沟时，边坡计入填方
+                    i_slopeEnd = drainagePosition
+                except:
+                    drainagePosition =int(drData_list[0])-1
+                    drainageLinesCount =0
+                print('roadShoulderPosition', roadShoulderPosition)
+                # 3.4 1）路肩与边沟之间边坡；2）边沟与坡脚之间边坡 范围划分
+                if slopePostionComparedWithdrainage == 1:
+                    i_slopeStart = roadShoulderPosition + 1
+                    i_slopeEnd = drainagePosition
+                else:
+                    i_slopeStart = drainageLinesCount + drainagePosition
+                    i_slopeEnd = int(drData_list[0]) - 1
+                print(f'i_slopeStart{i_slopeStart},i_slopeEnd{i_slopeEnd},drainageLinesCount{drainageLinesCount}')
+                slopeDatasFrom3dr = findSlopeFromLine(cross_section[i_LOrR], i_slopeStart, i_slopeEnd)
+                print('findSlopeFromLine函数返回值', slopeDatasFrom3dr)
+
+                #3.5 将数据插入数据表slope
+                if len(slopeDatasFrom3dr) > 0:
+                    maxSlopelevel = slopeDatasFrom3dr[-1][0]
+                    for slopedata in slopeDatasFrom3dr:
+                        slopedataForTable = [0, cross_section[0], i_LOrR, i_slopeStart, int(i_slopeEnd - i_slopeStart),
+                                             slopePostionComparedWithdrainage, 0, 0, maxSlopelevel]
+                        slopedataForTable = slopedataForTable + slopedata
+                        sql = "insert into slope values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"
+                        # print(slopedataForTable)
+                        insert = cursor.execute(sql, slopedataForTable)
+    cursor.close()
+    conn.commit()
+    conn.close()
+    print("边坡信息已存入drainageditch表")
+def findSlopeFromLine(linedata, i_slopeStart, i_slopeEnd, platformFilters='default', slopeFilters='default'):
+    '''
+    功能：得到给定边坡范围边坡信息（i_slopeStart和i_slopeEnd表示边坡在linedata中的开始和结束的位置），
+    :param linedata:线段信息，格式要像3dr左侧或右侧横断面格式，组数、平距、高差.....
+    :param i_slopeStart:边坡开始于第i_slopeStart组（平距+高差为一组）
+    :param i_slopeEnd:边坡止于第i_slopeEnd组（平距+高差为一组）
+    :param platformFilters:平台判定条件
+    :param slopeFilters:边坡判定条件
+    :return:[
+             [第1级 S宽度 S高度 S坡度 P宽度 P高度 P边度],
+             [第2级 S宽度 S高度 S坡度 P宽度 P高度 P边度],
+             ...
+             [第i级 S宽度 S高度 S坡度 P宽度 P高度 P边度],
+             ]
+             S指边歧，P指平台
+             2、不符合条件时返回res=[]
+    '''
+
+    if platformFilters == 'default':  # 平台判定条件
+        drainageFilter1 = ['0<width', '10<abs(gradient)<=9999']  # 第1条边判定条件
+        platformFilter_list = [drainageFilter1]
+    if slopeFilters == 'default':  # 边坡判定条件
+        drainageFilter1 = ['abs(height)>0', '0<=abs(gradient)<=10']  # 第1条边判定条件
+        slopeFilter_list = [drainageFilter1]
+    regx = r'-?\d+\.?\d*'
+    pointsOfLinedata = re.findall(regx, linedata, re.MULTILINE)
+    print(pointsOfLinedata)
+    res = []
+    wlist = {}
+    hlist = {}
+    glist = {}
+    isSlope = {}
+    isPlatform = {}
+    slopeLevel = 1
+    i_slopeLevel = 0
+    i_slopeEnd = int(i_slopeEnd)
+    i_slopeStart = int(i_slopeStart)
+    if i_slopeEnd <= i_slopeStart:
+        print('findSlopeFromLine 函数参数错误。', i_slopeStart, i_slopeEnd)
+        return res
+    for i in range(i_slopeStart, i_slopeEnd):
+        if abs(float(pointsOfLinedata[(i + 2) * 2 - 1])) - abs(float(pointsOfLinedata[(i + 2 - 1) * 2 - 1])) < 0:
+            print("挡墙")
+            return res  # 大概率是挡墙
+        #一、计算宽度、高度、坡度
+        widthOfPoint = float(pointsOfLinedata[(i + 2) * 2 - 1]) - float(pointsOfLinedata[(i + 2 - 1) * 2 - 1])
+        widthOfPoint = abs(float('{:.3f}'.format(widthOfPoint)))
+        heightOfPoint = float(pointsOfLinedata[(i + 2) * 2]) - float(pointsOfLinedata[(i + 2 - 1) * 2])
+        heightOfPoint = float('{:.3f}'.format(heightOfPoint))
+        try:
+            gradientOfPint = widthOfPoint / heightOfPoint
+            gradientOfPint = float('{:.3f}'.format(gradientOfPint))
+        except ZeroDivisionError:
+            gradientOfPint = 9999
+        # print(widthOfPoint,heightOfPoint,gradientOfPint)
+        #二、处理重合点；合并坡比相近线段
+        if widthOfPoint == 0 and heightOfPoint == 0:
+            continue
+        try:
+            temp = abs(glist[i_slopeLevel - 1] - gradientOfPint)
+        except:
+            wlist[i_slopeLevel] = widthOfPoint
+            hlist[i_slopeLevel] = heightOfPoint
+            glist[i_slopeLevel] = gradientOfPint
+        else:
+            if abs(glist[i_slopeLevel - 1] - gradientOfPint) <= 0.05:  # 合并坡比相近线段
+                i_slopeLevel = i_slopeLevel - 1
+                wlist[i_slopeLevel] = widthOfPoint + wlist[i_slopeLevel]
+                hlist[i_slopeLevel] = heightOfPoint + hlist[i_slopeLevel]
+            else:
+                wlist[i_slopeLevel] = widthOfPoint
+                hlist[i_slopeLevel] = heightOfPoint
+                glist[i_slopeLevel] = gradientOfPint
+        [width, height, gradient] = [widthOfPoint, heightOfPoint, gradientOfPint]
+        #三、根据给定条件判定平台、边坡
+        for m in range(len(slopeFilter_list)):
+            for n in range(len(slopeFilter_list[m])):
+                if eval(slopeFilter_list[m][n]):
+                    try:
+                        isSlope[i_slopeLevel] = True and isSlope[i_slopeLevel]
+                    except:
+                        isSlope[i_slopeLevel] = True
+                    # print('this is slope')
+                else:
+                    isSlope[i_slopeLevel] = False
+        for m in range(len(platformFilter_list)):
+            for n in range(len(platformFilter_list[m])):
+                if eval(platformFilter_list[m][n]):
+                    try:
+                        isPlatform[i_slopeLevel] = True and isPlatform[i_slopeLevel]
+                    except:
+                        isPlatform[i_slopeLevel] = True
+                    # print('this is platform')
+                else:
+                    isPlatform[i_slopeLevel] = False
+        #四、输出res
+        '''
+            1先标记平台或者边坡，isSlope[i]
+            2合并不同同一坡比边坡或平台
+            3不同坡比边坡，边坡级数+1；不同坡比平台，级数不变
+            4第一个pointdata存放一组边坡和平台数据（缺失部位用0补齐）
+        '''
+        if isSlope[i_slopeLevel] == isPlatform[i_slopeLevel]:
+            print('边坡、平台规则有重叠')
+        elif isSlope[i_slopeLevel] == True:
+            res_slopei = [slopeLevel, wlist[i_slopeLevel], hlist[i_slopeLevel], glist[i_slopeLevel], 0, 0, 0]
+            res.append(res_slopei)
+            slopeLevel = slopeLevel + 1
+        elif isPlatform[i_slopeLevel] == True:
+            try:
+                res_slopei[4] = wlist[i_slopeLevel]
+                res_slopei[5] = hlist[i_slopeLevel]
+                res_slopei[6] = glist[i_slopeLevel]
+            except:
+                res_slopei = [slopeLevel - 1, 0, 0, 0, 0, 0, 0]
+                res_slopei[4] = wlist[i_slopeLevel]
+                res_slopei[5] = hlist[i_slopeLevel]
+                res_slopei[6] = glist[i_slopeLevel]
+                res.append(res_slopei)
+                res_slopei = []
+        i_slopeLevel = i_slopeLevel + 1
+
+    return res
 def findDrainageDitchFromLine(linedata,drainageFilters='default'):
     #功能：根据给定的边沟/排水沟判定条件drainageFilters，从一条线linedata中找出边沟/排水沟，返回res=[6,3],表示linedata中第6段线开始为边沟/排水沟，边沟/排水沟由3条线段组成。
     #(linedata格式要像3dr左侧或右侧横断面格式，组数、平距、高差.....）
@@ -298,10 +532,10 @@ def creatMysqlSlopeTable(databaseName):
           `3dr中起始位置` int(3) ,
           `线段个数` int(3),
           `位于边沟左右侧` int(1) ,
-          `边坡类型` int(1) ,
-          `坡高` int(4) ,
+          `边坡类型没用` int(1) ,
+          `坡高没用` int(4) ,
           `最大级数` int(2) ,
-          `第i级数` int(2) ,
+          `第i级` int(2) ,
           PRIMARY KEY (`id`)
         ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=0"""
     cursor.execute(sql)
@@ -319,7 +553,7 @@ def creatMysqlSlopeTable(databaseName):
     cursor.close()
     conn.commit()
     conn.close()
-    print('slope表创建成功2.0')
+    print('slope表创建成功V2.0')
 def creatMysqlChainageTable(databaseName):
     #在databaseName数据库中新建chainage表
     prjname=databaseName
