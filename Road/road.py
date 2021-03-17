@@ -93,41 +93,46 @@ def insertDataFrom3drToTableSlope(prjpath, chainage, prjname):
             if len(temp) > 0:
                 cross_section[i] = temp
                 i = i + 1
-        for slopePostionComparedWithdrainage in [1, 2]:  # 1表示边坡在边沟左侧，2表示边坡在边沟右侧
-            for i_LOrR in [1, 2]:  # 左右侧
-                regx = r'-?\d+.?\d*'
-                drData_list = re.findall(regx, cross_section[i_LOrR], re.MULTILINE)
-                print('drData_list', drData_list)
-                #3.2确定路肩位置
-                for i_drData_list in range(1, len(drData_list), 2):
-                    # print(f'tfData{[i_LOrR + 3]}:{tfData[i_LOrR + 3]}')
-                    # print(float(drData_list[i_drData_list]))
-                    if abs(float(tfData[i_LOrR + 3])) == abs(float(drData_list[i_drData_list])):
-                        roadShoulderPosition = (i_drData_list - 3) / 2  # 默认TF文件中第4、5列为路基左、右宽度
-                        print(f'tfdata{i_LOrR + 3}列在cross_section{i_LOrR}中的位置：第', roadShoulderPosition, '组')
-                        break
-                # 3.3确定边沟位置
-                for drainagePosition_dic in drainagedataFromtable:
-                    if drainagePosition_dic['左右侧'] == i_LOrR:
-                        drainagePosition = drainagePosition_dic['3dr中起始位置']
-                        drainageLinesCount = drainagePosition_dic['线段个数']
-                        print(f'边沟在3dr中的起始位置{i_LOrR}侧：第', drainagePosition, f'组；边沟线段个数:{drainageLinesCount}')
-                        continue
-                    else:   #不含边沟、排水沟时，边坡计入填方
-                        drainagePosition = int(drData_list[0]) - 1
-                        drainageLinesCount = 0
-                try:
-                    i_slopeStart = roadShoulderPosition + 1
-                except:
-                    print(f'桩号{chainage}中{i_LOrR}侧3dr中未找到土路肩宽度')
+        # for slopePostionComparedWithdrainage in [1, 2]:  # 1表示边坡在边沟左侧，2表示边坡在边沟右侧
+        for i_LOrR in [1, 2]:  # 左右侧
+            roadShoulderPosition=''
+            drainagePosition=''
+            drainageLinesCount=''
+
+            regx = r'-?\d+.?\d*'
+            drData_list = re.findall(regx, cross_section[i_LOrR], re.MULTILINE)
+            print('drData_list', drData_list)
+            #3.2确定路肩位置
+            for i_drData_list in range(1, len(drData_list), 2):
+                # print(f'tfData{[i_LOrR + 3]}:{tfData[i_LOrR + 3]}')
+                # print(float(drData_list[i_drData_list]))
+                if abs(float(tfData[i_LOrR + 3])) == abs(float(drData_list[i_drData_list])):
+                    roadShoulderPosition = (i_drData_list - 3) / 2  # 默认TF文件中第4、5列为路基左、右宽度
+                    print(f'tfdata{i_LOrR + 3}列在cross_section{i_LOrR}中的位置：第', roadShoulderPosition, '组')
+                    break
+            # 3.3确定边沟位置
+            for drainagePosition_dic in drainagedataFromtable:
+                if drainagePosition_dic['左右侧'] == i_LOrR:
+                    drainagePosition = drainagePosition_dic['3dr中起始位置']
+                    drainageLinesCount = drainagePosition_dic['线段个数']
+                    print(f'边沟在3dr中的起始位置{i_LOrR}侧：第', drainagePosition, f'组；边沟线段个数:{drainageLinesCount}')
                     continue
-                try:    #不含边沟、排水沟时，边坡计入填方
-                    i_slopeEnd = drainagePosition
-                except:
-                    drainagePosition =int(drData_list[0])-1
-                    drainageLinesCount =0
-                print('roadShoulderPosition', roadShoulderPosition)
-                # 3.4 1）路肩与边沟之间边坡；2）边沟与坡脚之间边坡 范围划分
+                # else:   #不含边沟、排水沟时，边坡计入填方
+                #     drainagePosition = int(drData_list[0]) - 1
+                #     drainageLinesCount = 0
+            try:
+                i_slopeStart = roadShoulderPosition + 1
+            except:
+                print(f'桩号{chainage}中{i_LOrR}侧3dr中未找到土路肩宽度')
+                continue
+            try:    #不含边沟、排水沟时，边坡计入填方
+                i_slopeEnd = drainagePosition+1
+            except:
+                drainagePosition =int(drData_list[0])-1
+                drainageLinesCount =0
+            print('roadShoulderPosition', roadShoulderPosition)
+            # 3.4 1）路肩与边沟之间边坡；2）边沟与坡脚之间边坡 范围划分
+            for slopePostionComparedWithdrainage in [1, 2]:  # 1表示边坡在边沟左侧，2表示边坡在边沟右侧
                 if slopePostionComparedWithdrainage == 1:
                     i_slopeStart = roadShoulderPosition + 1
                     i_slopeEnd = drainagePosition

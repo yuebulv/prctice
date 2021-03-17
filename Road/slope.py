@@ -66,8 +66,9 @@ if __name__ == "__main__":
         chainageValuesInTable_list_dic = um.cursor.fetchall()
     chainageValuesInTable_list = [item[key] for item in chainageValuesInTable_list_dic for key in item]
     chainages=chainageValuesInTable_list
-    # chainages=['all']
-    # chainage='a0'
+
+    # chainages=['a2380']
+
     # 二、 生成数据表DrainageDitchTable
     for chainage in chainages:
         threedrpath = road.findXPathFromPrj(prjpath, '3dr')
