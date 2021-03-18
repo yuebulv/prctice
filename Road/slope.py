@@ -35,7 +35,12 @@
         边坡表slope
             #序号 chainage    左右侧(1/2) 位于边沟左右侧(0(无边沟)/1（边沟左侧）/2（边沟右内里）)	边坡类型（1填-1挖） 坡高 最大级数    【第i级平台	第i级平台坡度	第i级平台平距	第i级平台高度	第i级平台坐标x	第i级平台坐标y	第i级平台高程
                                                                                                                     # 	第i级边坡	第i级边坡坡度	第i级边坡平距	第i级边坡高度	第i级边坡坐标x	第i级边坡坐标y	第i级边坡高程】
-
+    四、查询分组合并
+        桥梁桩号处理
+            分左右幅
+            标注桥梁
+            端点处理
+        断链处理
 
     #防护类型表（根据防护通用图）
     #     防护类型 条件1 条件2....
@@ -77,6 +82,12 @@ if __name__ == "__main__":
     road.creatMysqlSlopeTable(prjname)
     for chainage in chainages:
         road.insertDataFrom3drToTableSlope(prjpath, chainage, prjname)
+
+    # chainage='b14716'
+    #
+    # remp=road.isbridgeOrTunnel(chainage,prjpath)
+    # print(remp)
+
 
 
 

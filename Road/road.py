@@ -5,6 +5,88 @@ import os
 import pymysql
 import road
 import mysql
+def isbridgeOrTunnel(chainage,prjpath):
+    '''
+    :param chainage:
+    :param pathOfCtr:
+    :return:3/4/''
+            3表示桥梁、4表示隧道、否则为‘’
+    '''
+    pathOfCtr=road.findXPathFromPrj(prjpath, 'ctr')
+    try:
+        ctrfile=open(pathOfCtr,'r')
+    except:#except FileNotFoundError:
+        msgbox = road.gui_filenotfine(f'{pathOfCtr}文件不存在')
+        sys.exit()
+    else:
+        ctrFileData=ctrfile.read().upper()
+        ctrfile.close()
+        regx_qh=r'QHSJ\.DAT([\s|\S]+)HDSJ\.DAT'                                                         #软条件，随ctr格式变化
+        regx_sd = r'SUIDAO\.DAT([\s|\S]+)SHUIZHUNDIAN\.DAT'
+        regx_list=[regx_qh,regx_sd]
+        i = 3
+        for regx in regx_list:
+            qhdatas=re.findall(regx,ctrFileData,re.MULTILINE)
+            # print(f'qhdatas:{qhdatas}')
+            for qhdata in qhdatas:
+                qhs_list=qhdata.split('\n')
+                # print(qhs_list)
+                for qh in qhs_list:
+                    regx=r'\S+'
+                    qh_list=re.findall(regx,qh,re.MULTILINE)
+                    # print(qh_list)
+                    if len(qh_list)>2:
+                        qhChain_l=road.switchBreakChainageToNoBreak(qh_list[0], prjpath)
+                        qhChain_n = road.switchBreakChainageToNoBreak(qh_list[1], prjpath)
+                        chainage_nobreak = road.switchBreakChainageToNoBreak(chainage, prjpath)
+                        if qhChain_l<=chainage_nobreak<=qhChain_n :
+                            return i
+                    else:
+                        continue
+            i = i + 1
+        return ''
+def switchBreakChainageToNoBreak(chainage,prjpath):
+    '''
+    :param chainage:
+    :param pathOfCtr:
+    :return:chainage(断链后)(float)或者返回''
+    '''
+    chainage=chainage.strip().upper()
+    pathOfCtr=prjpath
+    if len(chainage)>0:
+        chainage=road.cutInvalidWords_chainage(chainage)
+        if 65<=ord(chainage[0])<=90:
+            pass
+        else:
+            return chainage[1]
+        try:
+            ctrfile=open(pathOfCtr,'r')
+        except:
+            msgbox = road.gui_filenotfine(f'{pathOfCtr}文件不存在')
+            sys.exit()
+        else:
+            ctrfileData=ctrfile.read()
+            ctrfile.close()
+            regx = r'断链.+=(.+=.+)'
+            breakchainsInCtr=re.findall(regx,ctrfileData,re.MULTILINE)
+            # print(f'breakchainInCtr:{breakchainsInCtr}')
+            if len(breakchainsInCtr)>0:
+                breakchain_list=[]
+                for breakchainInCtr in breakchainsInCtr:
+                    breakchain=breakchainInCtr.split('=')
+                    breakchain_list.append(breakchain)
+                    # print(f'breakchain_list:{breakchain_list}')
+                correctionsOfChainage=0
+                for i in range(0,ord(chainage[0])-65):
+                    correctionsOfChainage=correctionsOfChainage+float(breakchain_list[i][0].strip())-float(breakchain_list[i][1].strip())
+                # print(f'correctionsOfChainage:{correctionsOfChainage}')
+                # print(chainage[1])
+                chainage_nobreak=float(chainage[1])+correctionsOfChainage
+                return chainage_nobreak
+            else:
+                return chainage[1]
+    else:
+        return ''
 def insertDataToTableDrainageDitchFrom3dr(pathOf3dr,chainage,prjname):
     #功能：将3dr中桩号为chainage边沟/排水沟信息插入到DrainageDitch表中
     # road.getCrossSectionOf3dr得到3dr中桩号chainagea横断面数据
@@ -145,11 +227,14 @@ def insertDataFrom3drToTableSlope(prjpath, chainage, prjname):
 
                 #3.5 将数据插入数据表slope
                 if len(slopeDatasFrom3dr) > 0:
-                    maxSlopelevel = slopeDatasFrom3dr[-1][0]
+                    slopeType=road.isbridgeOrTunnel(chainage, prjpath)
+                    if slopeType=='':
+                        slopeType=0
+                    maxSlopelevel = slopeDatasFrom3dr[-1][1]
                     for slopedata in slopeDatasFrom3dr:
                         slopedataForTable = [0, cross_section[0], i_LOrR, i_slopeStart, int(i_slopeEnd - i_slopeStart),
-                                             slopePostionComparedWithdrainage, 0, 0, maxSlopelevel]
-                        slopedataForTable = slopedataForTable + slopedata
+                                             slopePostionComparedWithdrainage, slopeType, slopedata[0], maxSlopelevel]
+                        slopedataForTable = slopedataForTable + slopedata[1:]
                         sql = "insert into slope values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"
                         # print(slopedataForTable)
                         insert = cursor.execute(sql, slopedataForTable)
@@ -166,12 +251,12 @@ def findSlopeFromLine(linedata, i_slopeStart, i_slopeEnd, platformFilters='defau
     :param platformFilters:平台判定条件
     :param slopeFilters:边坡判定条件
     :return:[
-             [第1级 S宽度 S高度 S坡度 P宽度 P高度 P边度],
-             [第2级 S宽度 S高度 S坡度 P宽度 P高度 P边度],
+             [坡高 第1级 S宽度 S高度 S坡度 P宽度 P高度 P边度],
+             [坡高 第2级 S宽度 S高度 S坡度 P宽度 P高度 P边度],
              ...
-             [第i级 S宽度 S高度 S坡度 P宽度 P高度 P边度],
+             [坡高 第i级 S宽度 S高度 S坡度 P宽度 P高度 P边度],
              ]
-             S指边歧，P指平台
+             坡高指边坡总高，S指边歧，P指平台
              2、不符合条件时返回res=[]
     '''
 
@@ -194,6 +279,7 @@ def findSlopeFromLine(linedata, i_slopeStart, i_slopeEnd, platformFilters='defau
     i_slopeLevel = 0
     i_slopeEnd = int(i_slopeEnd)
     i_slopeStart = int(i_slopeStart)
+    heightSum=0
     if i_slopeEnd <= i_slopeStart:
         print('findSlopeFromLine 函数参数错误。', i_slopeStart, i_slopeEnd)
         return res
@@ -206,6 +292,7 @@ def findSlopeFromLine(linedata, i_slopeStart, i_slopeEnd, platformFilters='defau
         widthOfPoint = abs(float('{:.3f}'.format(widthOfPoint)))
         heightOfPoint = float(pointsOfLinedata[(i + 2) * 2]) - float(pointsOfLinedata[(i + 2 - 1) * 2])
         heightOfPoint = float('{:.3f}'.format(heightOfPoint))
+        heightSum = heightSum +heightOfPoint
         try:
             gradientOfPint = widthOfPoint / heightOfPoint
             gradientOfPint = float('{:.3f}'.format(gradientOfPint))
@@ -262,23 +349,22 @@ def findSlopeFromLine(linedata, i_slopeStart, i_slopeEnd, platformFilters='defau
         if isSlope[i_slopeLevel] == isPlatform[i_slopeLevel]:
             print('边坡、平台规则有重叠')
         elif isSlope[i_slopeLevel] == True:
-            res_slopei = [slopeLevel, wlist[i_slopeLevel], hlist[i_slopeLevel], glist[i_slopeLevel], 0, 0, 0]
+            res_slopei = [heightSum,slopeLevel, wlist[i_slopeLevel], hlist[i_slopeLevel], glist[i_slopeLevel], 0, 0, 0]
             res.append(res_slopei)
             slopeLevel = slopeLevel + 1
         elif isPlatform[i_slopeLevel] == True:
             try:
-                res_slopei[4] = wlist[i_slopeLevel]
-                res_slopei[5] = hlist[i_slopeLevel]
-                res_slopei[6] = glist[i_slopeLevel]
+                res_slopei[-3] = wlist[i_slopeLevel]
+                res_slopei[-2] = hlist[i_slopeLevel]
+                res_slopei[-1] = glist[i_slopeLevel]
             except:
-                res_slopei = [slopeLevel - 1, 0, 0, 0, 0, 0, 0]
-                res_slopei[4] = wlist[i_slopeLevel]
-                res_slopei[5] = hlist[i_slopeLevel]
-                res_slopei[6] = glist[i_slopeLevel]
+                res_slopei = [heightSum,slopeLevel - 1, 0, 0, 0, 0, 0, 0]
+                res_slopei[-3] = wlist[i_slopeLevel]
+                res_slopei[-2] = hlist[i_slopeLevel]
+                res_slopei[-1] = glist[i_slopeLevel]
                 res.append(res_slopei)
                 res_slopei = []
         i_slopeLevel = i_slopeLevel + 1
-
     return res
 def findDrainageDitchFromLine(linedata,drainageFilters='default'):
     #功能：根据给定的边沟/排水沟判定条件drainageFilters，从一条线linedata中找出边沟/排水沟，返回res=[6,3],表示linedata中第6段线开始为边沟/排水沟，边沟/排水沟由3条线段组成。
@@ -538,7 +624,7 @@ def creatMysqlSlopeTable(databaseName):
           `线段个数` int(3),
           `位于边沟左右侧` int(1) ,
           `边坡类型没用` int(1) ,
-          `坡高没用` int(4) ,
+          `坡高` float(10) ,
           `最大级数` int(2) ,
           `第i级` int(2) ,
           PRIMARY KEY (`id`)
@@ -621,8 +707,13 @@ def findXPathFromPrj(prjpath,typeOfFindX):
         data_prj=prjfile.read()
         prjfile.close()
         data_prj=data_prj.lower()
-        regx = f'\*\.{typeOfFindX}\).*=\s*(\S*)\s*(?=\n)'
+        regx = f'\*\.{typeOfFindX}\).*=\s*(.*)\s*(?=\n)'
         res = re.findall(regx, data_prj, re.MULTILINE)
+        try:
+            res[0]=res[0].strip()
+        except:
+            msgbox = gui_filenotfine(f'findXPathFromPrj {typeOfFindX} path不存在')
+            return ""
         if len(res[0])>0:
             if os.path.exists(res[0]):
                 return res[0]
@@ -631,7 +722,7 @@ def findXPathFromPrj(prjpath,typeOfFindX):
                 # temp=re.findall(regx,res[0],re.MULTILINE)
                 res[0]=res[0].replace('/','\\')
                 res[0]=res[0].split('\\')
-                res[0]=res[0][len(res[0])-1]
+                res[0]=res[0][len(res[0])-1].strip()
                 if res[0].find('.') ==-1:
                     msgbox = gui_filenotfine(f'findXPathFromPrj {typeOfFindX} path:{res[0]}')
                     return ""
@@ -659,12 +750,23 @@ def cutInvalidWords_chainage(chainage):
     regx=r'(?<!\S)[a-zA-Z]?(\d+(?:\.\d*)?)(?!\S)'
     temp1=re.findall(regx,chainage,re.MULTILINE)
     # print('ctu', temp1)
+    # print(f'temp1:{temp1}')
     try:
-
-        temp1[0]='{:g}'.format(float(temp1[0]))
+        temp = str(temp1[0])
     except:
         return res
     else:
+        newtemp = temp
+        i = 0
+        try:
+            while float(temp) == float(newtemp):
+                newtemp = temp[0:len(temp) - i]
+                i = i + 1
+        except:
+            pass
+        temp1[0]= temp[0:len(temp) - i + 2]
+        # temp1[0]='{:g}'.format(float(temp1[0]))
+        # print(f'temp1[0]:{temp1[0]}')
         regx = r'(?<!\S)([a-zA-Z]?)\d+(?:\.\d*)?(?!\S)'
         temp2 = re.findall(regx, chainage, re.MULTILINE)
         res.append(temp2[0].upper())
