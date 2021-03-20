@@ -5,42 +5,178 @@ import os
 import pymysql
 import road
 import mysql
-def isbridgeOrTunnel(chainage,prjpath):
+import copy
+def groupByContinuousChainageAndSum(prjname, sql, field_list, prjpath):
     '''
+    功能：将sql查询结果，分组输出
+    :param prjname:
+    :param sql:
+    :param field_list:
+    :param prjpath:
+    :return:res=[res_dic],{起点，止点，长度，field_list中字段}
+        注意：1，平均断面法在求面积时，计算长度lenOfchainage在曲线处时不是两相邻桩号之差，曲线内侧是lenOfchainage会偏小，反之偏大；
+        2，相邻桩号高度不同时，计算的平均高度与总体图中相比偏小；（比如总体图中平台在两端会延伸与地面线相交后，形成一条折线）
+        3，头部增加一行起点数据（计算得，尺寸与后一断面一致），尾部增加一行起点数据（计算得，尺寸与前一断面一致），以修正输出结果的起止点和数量，数量可能比实际大
+    '''
+    groupdata_list = []
+    fieldList = ['左右侧', '第i级', 'S坡度', '位于边沟左右侧']   # 将fieldList中字段（必须与sql结果中字段对应）在结果中列出，可扩展[字段1，字段2]
+    fieldMax = ['最大级数', '坡高']   # 寻找fieldMax中字段的最大值（必须与sql结果中字段对应）在结果中列出，可扩展[字段1，字段2]
+    fieldMin = ['坡高']   # 寻找fieldMin中字段的最小值（必须与sql结果中字段对应）在结果中列出，可扩展[字段1，字段2]
+    fieldSum = [2,'S宽度','S高度','(((S宽度)**2+(S高度)**2)**0.5+((S宽度_last)**2+(S高度_last)**2)**0.5)/2*lenOfchainage']  # 按计算式fieldSum[-1]累加，2表示有两个参数，即计算式fieldSum[-1]有两个参数，暂时不可扩展
+    field_list = [fieldMax, fieldMin, fieldSum, fieldList]
+    res_dic = {'起点': '', '止点': '', '长度': ''}
+    with mysql.UsingMysql(log_time=False, db=prjname) as um:
+        um.cursor.execute(sql)
+        mysqldatas = um.cursor.fetchall()
+        # print(mysqldatas)
+        # print(len(mysqldatas))
+        # print(type(mysqldatas))
+        # 一、按数据表chainage中的id（id_chainage）是否连续分组
+        if isinstance(mysqldatas, dict):    # 只有一个桩号
+            groupdata_list.append([mysqldatas])
+        elif isinstance(mysqldatas, list):    # 多个桩号
+            for i in range(0, len(mysqldatas)):
+                # print(mysqldatas[i]['chainage'])
+                if i == 0:
+                    groupdata_list.append([mysqldatas[i]])
+                    continue
+                if mysqldatas[i]['id_chainage']-1 == mysqldatas[i-1]['id_chainage']:
+                    groupdata_list[-1].append(mysqldatas[i])
+                else:
+                    groupdata_list.append([mysqldatas[i]])
+                # print(mysqldatas[i])
+    #二、按field_list中关键字段输出res_dic，起点、止点、长度为默认输出字段，
+        res = []
+        for groupdata_dic_list in groupdata_list:
+            # print(f'groupdata_dic_list:{groupdata_dic_list}')
+            # 2.0在groupdata_dic_list头部增加一行起点数据（计算得），尾部增加一行起点数据（计算得），以修正输出结果的起止点和数量
+            groupdata_dic_list.insert(0, copy.deepcopy(groupdata_dic_list[0]))  #重点，必须用deepcopy
+            groupdata_dic_list.append(copy.deepcopy(groupdata_dic_list[-1]))
+            for i_addchainage in [0,-1]:
+                if i_addchainage == 0:
+                    id_chainage = groupdata_dic_list[i_addchainage]['id_chainage']-1
+                else:
+                    id_chainage = groupdata_dic_list[i_addchainage]['id_chainage'] + 1
+                sql=f'''SELECT chainage FROM chainage WHERE ID ={id_chainage};'''
+                um.cursor.execute(sql)
+                chainageA_dic = um.cursor.fetchone()
+                try:
+                    chainageA = chainageA_dic['chainage']
+                except:
+                    chainageA = groupdata_dic_list[i_addchainage]['chainage']
+                chainageB = groupdata_dic_list[i_addchainage]['chainage']
+                # print(f'chainageA:{chainageA}')
+                # print(f'chainageB:{chainageB}')
+                chainage_new = road.findBridgeChainageFromABChainage(chainageA, chainageB, prjpath, groupdata_dic_list[i_addchainage]['左右侧'])
+                # print(f'chainage_new:{chainage_new}')
+                # print(i_addchainage)
+                # print(groupdata_dic_list)
+                groupdata_dic_list[i_addchainage]['chainage'] = chainage_new
+                # print(groupdata_dic_list)
+                # for i_field_sum in range(0, int(field_list[2][0])):     # 修改参与数量计算参数为0,修改为0后起止点数量偏小，所以头尾新增断面尺寸暂时与其相邻断面一致；
+                #     groupdata_dic_list[i_addchainage][field_list[2][1+i_field_sum]] = 0
+            # print(f'groupdata_dic_list,add new chainage:{groupdata_dic_list}')
+            del res_dic
+            res_dic = {}
+            fieldofsumparameter = {}
+            fieldofsumparameter_last = {}
+            # 2.1 计算起点、止点、长度
+            res_dic['起点'] = groupdata_dic_list[0]['chainage']
+            res_dic['止点'] = groupdata_dic_list[-1]['chainage']
+            lastchainage = road.switchBreakChainageToNoBreak(groupdata_dic_list[0]['chainage'], prjpath)
+            lenOfchainage = road.switchBreakChainageToNoBreak(groupdata_dic_list[-1]['chainage'], prjpath)
+            lenOfchainage = lenOfchainage - lastchainage
+            res_dic['长度'] = lenOfchainage
+            # 2.2 计算fieldList中字段值
+            for field in field_list[3]:
+                res_dic[field] = groupdata_dic_list[0][field]
+            # 2.3 计算[fieldMax, fieldMin, fieldSum]中字段值
+            for groupdata_dic in groupdata_dic_list:
+                for field_max in field_list[0]:
+                    try:
+                        res_dic[field_max+'max'] = max(groupdata_dic[field_max], res_dic[field_max+'max'])
+                    except KeyError:
+                        res_dic[field_max+'max'] = groupdata_dic[field_max]
+                for field_min in field_list[1]:
+                    try:
+                        res_dic[field_min+'min'] = min(groupdata_dic[field_min], res_dic[field_min+'min'])
+                    except KeyError:
+                        res_dic[field_min+'min'] = groupdata_dic[field_min]
+                chainage = road.switchBreakChainageToNoBreak(groupdata_dic['chainage'], prjpath)
+                lenOfchainage = chainage - lastchainage
+                sumexpression = field_list[2][-1]
+                # 2.3.1计算[fieldSum]中字段值
+                for i_field_sum in range(0, int(field_list[2][0])):
+                    fieldofsumparameter[i_field_sum] = str(groupdata_dic[field_list[2][i_field_sum+1]])
+                    try:
+                        fieldofsumparameter_last[i_field_sum]
+                    except KeyError:
+                        fieldofsumparameter_last[i_field_sum] = fieldofsumparameter[i_field_sum]
+                    sumexpression = sumexpression.replace(field_list[2][i_field_sum + 1] + '_last', fieldofsumparameter_last[i_field_sum])
+                    sumexpression = sumexpression.replace(field_list[2][i_field_sum+1], fieldofsumparameter[i_field_sum])
+                    # print(f'field_list[2][-1]:{field_list[2][-1]}')
+                    # print(f'field_list[2][i_field_sum+1]:{field_list[2][i_field_sum+1]}')
+                    fieldofsumparameter_last[i_field_sum] = fieldofsumparameter[i_field_sum]
+                print(sumexpression)
+                print(lenOfchainage)
+                try:
+                    res_dic['field_sum'] += eval(sumexpression)
+                    print(eval(sumexpression))
+                except KeyError:
+                    res_dic['field_sum'] = eval(sumexpression)
+                    print(eval(sumexpression))
+                lastchainage = chainage
+            res_dic['field_sum'] = "{:+.3f}".format(res_dic['field_sum'])
+            res.append(res_dic)
+            print(res_dic)
+        return res
+        # print(f'groupdata_list:{groupdata_list}')
+        # print("-- 当前数量: %d " % len(mysqldatas))
+def isbridgeOrTunnel(chainage,prjpath,lOrRSideOfsubgrade=1):
+    '''
+    功能：判断chainage路基类型，3表示桥梁、4表示隧道、否则为‘’
     :param chainage:
     :param pathOfCtr:
+    :param lOrRSideOfsubgrade:1表示左幅路基，2表示右幅路基，
     :return:3/4/''
-            3表示桥梁、4表示隧道、否则为‘’
     '''
-    pathOfCtr=road.findXPathFromPrj(prjpath, 'ctr')
+    pathOfCtr = road.findXPathFromPrj(prjpath, 'ctr')
     try:
-        ctrfile=open(pathOfCtr,'r')
-    except:#except FileNotFoundError:
+        ctrfile = open(pathOfCtr,'r')
+    except: # except FileNotFoundError:
         msgbox = road.gui_filenotfine(f'{pathOfCtr}文件不存在')
         sys.exit()
     else:
         ctrFileData=ctrfile.read().upper()
         ctrfile.close()
-        regx_qh=r'QHSJ\.DAT([\s|\S]+)HDSJ\.DAT'                                                         #软条件，随ctr格式变化
+        regx_qh = r'QHSJ\.DAT([\s|\S]+)HDSJ\.DAT'                                                         #软条件，随ctr格式变化
         regx_sd = r'SUIDAO\.DAT([\s|\S]+)SHUIZHUNDIAN\.DAT'
-        regx_list=[regx_qh,regx_sd]
+        regx_list = [regx_qh,regx_sd]
         i = 3
         for regx in regx_list:
-            qhdatas=re.findall(regx,ctrFileData,re.MULTILINE)
+            qhdatas = re.findall(regx, ctrFileData, re.MULTILINE)
             # print(f'qhdatas:{qhdatas}')
             for qhdata in qhdatas:
-                qhs_list=qhdata.split('\n')
+                qhs_list = qhdata.split('\n')
                 # print(qhs_list)
                 for qh in qhs_list:
-                    regx=r'\S+'
-                    qh_list=re.findall(regx,qh,re.MULTILINE)
+                    regx = r'\S+'
+                    qh_list = re.findall(regx, qh, re.MULTILINE)
                     # print(qh_list)
-                    if len(qh_list)>2:
-                        qhChain_l=road.switchBreakChainageToNoBreak(qh_list[0], prjpath)
+                    if len(qh_list) > 2:
+                        qhChain_l = road.switchBreakChainageToNoBreak(qh_list[0], prjpath)
                         qhChain_n = road.switchBreakChainageToNoBreak(qh_list[1], prjpath)
                         chainage_nobreak = road.switchBreakChainageToNoBreak(chainage, prjpath)
-                        if qhChain_l<=chainage_nobreak<=qhChain_n :
-                            return i
+                        if qhChain_l <= chainage_nobreak <= qhChain_n:
+                            if i == 3:   #左右幅判断
+                                if float(qh_list[-1])==0:
+                                    return i
+                                elif float(qh_list[-1])==-1 and float(lOrRSideOfsubgrade) == 1:
+                                    return i
+                                elif float(qh_list[-1]) == 1 and float(lOrRSideOfsubgrade) == 2:
+                                    return i
+                            else:
+                                return i
                     else:
                         continue
             i = i + 1
@@ -49,12 +185,17 @@ def switchBreakChainageToNoBreak(chainage,prjpath):
     '''
     :param chainage:
     :param pathOfCtr:
-    :return:chainage(断链后)(float)或者返回''
+    :return:chainage(无断链)(float)或者返回''
     '''
-    chainage=chainage.strip().upper()
+    try:
+        chainage=chainage.strip().upper()
+    except:
+        chainage=str(chainage)
     pathOfCtr=prjpath
     if len(chainage)>0:
         chainage=road.cutInvalidWords_chainage(chainage)
+        if len(chainage[0]) == 0:
+            return chainage[1]
         if 65<=ord(chainage[0])<=90:
             pass
         else:
@@ -85,6 +226,67 @@ def switchBreakChainageToNoBreak(chainage,prjpath):
                 return chainage_nobreak
             else:
                 return chainage[1]
+    else:
+        return ''
+def switchNoBreakToBreakChainage(chainage,prjpath):
+    '''
+    :param chainage:
+    :param pathOfCtr:
+    :return:chainage(含断链)(float)或者返回''
+    '''
+    try:
+        chainage=chainage.strip().upper()
+    except:
+        chainage=str(chainage)
+    pathOfCtr=prjpath
+    if len(chainage)>0:
+        # chainage=road.cutInvalidWords_chainage(chainage)
+        # if 65<=ord(chainage[0])<=90:
+        #     pass
+        # else:
+        #     return chainage[1]
+        try:
+            ctrfile=open(pathOfCtr,'r')
+        except:
+            msgbox = road.gui_filenotfine(f'{pathOfCtr}文件不存在')
+            sys.exit()
+        else:
+            ctrfileData=ctrfile.read()
+            ctrfile.close()
+            regx = r'断链.+=(.+=.+)'
+            breakchainsInCtr=re.findall(regx,ctrfileData,re.MULTILINE)
+            # print(f'breakchainInCtr:{breakchainsInCtr}')
+            if len(breakchainsInCtr)>0:
+                breakchain_list=[]
+                chainage_actual = {}
+                chainage_Chain_before = {}
+                chainage_Chain_next = {}
+                for breakchainInCtr in breakchainsInCtr:
+                    breakchain=breakchainInCtr.split('=')
+                    breakchain_list.append(breakchain)
+                    # print(f'breakchain_list:{breakchain_list}')
+                correctionsOfChainage = 0
+                chainage_actual[0] = float(breakchain_list[0][0].strip())
+                chainage_Chain_next[0] = float(breakchain_list[0][1].strip())
+                i = 0
+                for i in range(1, len(breakchain_list)):
+                    correctionsOfChainage = correctionsOfChainage+float(breakchain_list[i-1][0].strip())-float(breakchain_list[i-1][1].strip())
+                    chainage_actual[i] = float(breakchain_list[i][0].strip()) + correctionsOfChainage
+                    chainage_Chain_before[i] = float(breakchain_list[i][0].strip())
+                    chainage_Chain_next[i] = float(breakchain_list[i][1].strip())
+                # print(f'correctionsOfChainage:{correctionsOfChainage}')
+                # print(chainage[1])
+                # print(f'chainage_actual[i]:{chainage_actual}')
+                while float(chainage) < chainage_actual[i]:
+                    i = i - 1
+                    if i<0:
+                        return chr(i+66) + str(round(float(chainage),3))
+                # print(i)
+                chainage = chainage_Chain_next[i] + float(chainage) - chainage_actual[i]
+                chainage_break = chr(i+66) + str(round(chainage,3))
+                return chainage_break
+            else:
+                return chainage
     else:
         return ''
 def insertDataToTableDrainageDitchFrom3dr(pathOf3dr,chainage,prjname):
@@ -227,7 +429,7 @@ def insertDataFrom3drToTableSlope(prjpath, chainage, prjname):
 
                 #3.5 将数据插入数据表slope
                 if len(slopeDatasFrom3dr) > 0:
-                    slopeType=road.isbridgeOrTunnel(chainage, prjpath)
+                    slopeType=road.isbridgeOrTunnel(chainage, prjpath,i_LOrR)
                     if slopeType=='':
                         slopeType=0
                     maxSlopelevel = slopeDatasFrom3dr[-1][1]
@@ -242,6 +444,54 @@ def insertDataFrom3drToTableSlope(prjpath, chainage, prjname):
     conn.commit()
     conn.close()
     print("边坡信息已存入drainageditch表")
+def findBridgeChainageFromABChainage(chainageA, chainageB, prjpath, lOrRSideOfsubgrade=1):
+    # 功能：已知两相邻桩号A/B，查找A/B之间是否存在桥隧起止点，如有返回桥隧起止桩号，否则返回中间桩号（A+B）/2
+    # A/B为含断链桩号
+    pathOfCtr = road.findXPathFromPrj(prjpath, 'ctr')
+    try:
+        ctrfile = open(pathOfCtr, 'r')
+    except:  # except FileNotFoundError:
+        msgbox = road.gui_filenotfine(f'{pathOfCtr}文件不存在')
+        sys.exit()
+    else:
+        ctrFileData = ctrfile.read().upper()
+        ctrfile.close()
+        regx_qh = r'QHSJ\.DAT([\s|\S]+)HDSJ\.DAT'  # 软条件，随ctr格式变化
+        regx_sd = r'SUIDAO\.DAT([\s|\S]+)SHUIZHUNDIAN\.DAT'
+        regx_list = [regx_qh, regx_sd]
+        i = 3
+        for regx in regx_list:
+            qhdatas = re.findall(regx, ctrFileData, re.MULTILINE)
+            # print(f'qhdatas:{qhdatas}')
+            for qhdata in qhdatas:
+                qhs_list = qhdata.split('\n')
+                # print(qhs_list)
+                for qh in qhs_list:
+                    qhChain = {}
+                    regx = r'\S+'
+                    qh_list = re.findall(regx, qh, re.MULTILINE)
+                    # print(qh_list)
+                    if len(qh_list) > 2:
+                        for i_headOrTail in [0, 1]:
+                            qhChain[i_headOrTail] = road.switchBreakChainageToNoBreak(qh_list[i_headOrTail], prjpath)
+                            chainageA_nobreak = road.switchBreakChainageToNoBreak(chainageA, prjpath)
+                            chainageB_nobreak = road.switchBreakChainageToNoBreak(chainageB, prjpath)
+                            if min(chainageA_nobreak, chainageB_nobreak) <= qhChain[i_headOrTail] <= max(chainageA_nobreak, chainageB_nobreak):
+                                if i == 3:  # 左右幅判断
+                                    if float(qh_list[-1]) == 0:
+                                        return qh_list[i_headOrTail]
+                                    elif float(qh_list[-1]) == -1 and float(lOrRSideOfsubgrade) == 1:
+                                        return qh_list[i_headOrTail]
+                                    elif float(qh_list[-1]) == 1 and float(lOrRSideOfsubgrade) == 2:
+                                        return qh_list[i_headOrTail]
+                                else:
+                                    return qh_list[i_headOrTail]
+                    else:
+                        continue
+            i = i + 1
+        chainageA_nobreak = road.switchBreakChainageToNoBreak(chainageA, prjpath)
+        chainageB_nobreak = road.switchBreakChainageToNoBreak(chainageB, prjpath)
+        return road.switchNoBreakToBreakChainage((chainageA_nobreak+chainageB_nobreak)/2, prjpath)
 def findSlopeFromLine(linedata, i_slopeStart, i_slopeEnd, platformFilters='default', slopeFilters='default'):
     '''
     功能：得到给定边坡范围边坡信息（i_slopeStart和i_slopeEnd表示边坡在linedata中的开始和结束的位置），
@@ -623,7 +873,7 @@ def creatMysqlSlopeTable(databaseName):
           `3dr中起始位置` int(3) ,
           `线段个数` int(3),
           `位于边沟左右侧` int(1) ,
-          `边坡类型没用` int(1) ,
+          `边坡类型` int(1) ,
           `坡高` float(10) ,
           `最大级数` int(2) ,
           `第i级` int(2) ,
@@ -736,7 +986,7 @@ def findXPathFromPrj(prjpath,typeOfFindX):
                 # print('temppath',temppath)
 
                 if os.path.exists(xpath):
-                    print(f'findXPathFromPrj {typeOfFindX} path:', xpath)
+                    # print(f'findXPathFromPrj {typeOfFindX} path:', xpath)
                     return xpath
                 else:
                     msgbox=gui_filenotfine(f'findXPathFromPrj {typeOfFindX} path:{xpath}')
