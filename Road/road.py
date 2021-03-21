@@ -86,7 +86,7 @@ def groupByContinuousChainageAndSum(prjname, sql, field_list, prjpath):
             lastchainage = road.switchBreakChainageToNoBreak(groupdata_dic_list[0]['chainage'], prjpath)
             lenOfchainage = road.switchBreakChainageToNoBreak(groupdata_dic_list[-1]['chainage'], prjpath)
             lenOfchainage = lenOfchainage - lastchainage
-            res_dic['长度'] = lenOfchainage
+            res_dic['长度'] = round(lenOfchainage, 3)
             # 2.2 计算fieldList中字段值
             for field in field_list[3]:
                 res_dic[field] = groupdata_dic_list[0][field]
@@ -195,11 +195,11 @@ def switchBreakChainageToNoBreak(chainage,prjpath):
     if len(chainage)>0:
         chainage=road.cutInvalidWords_chainage(chainage)
         if len(chainage[0]) == 0:
-            return chainage[1]
+            return float(chainage[1])
         if 65<=ord(chainage[0])<=90:
             pass
         else:
-            return chainage[1]
+            return float(chainage[1])
         try:
             ctrfile=open(pathOfCtr,'r')
         except:
@@ -225,7 +225,7 @@ def switchBreakChainageToNoBreak(chainage,prjpath):
                 chainage_nobreak=float(chainage[1])+correctionsOfChainage
                 return chainage_nobreak
             else:
-                return chainage[1]
+                return float(chainage[1])
     else:
         return ''
 def switchNoBreakToBreakChainage(chainage,prjpath):
@@ -324,7 +324,7 @@ def insertDataToTableDrainageDitchFrom3dr(pathOf3dr,chainage,prjname):
     cursor.close()
     conn.commit()
     conn.close()
-    print("边沟/排水沟信息已存入drainageditch表")
+    print(f"桩号{chainage}边沟/排水沟信息已存入drainageditch表")
 def insertDataFrom3drToTableSlope(prjpath, chainage, prjname):
     '''
     功能：将3dr中桩号为chainage边坡信息插入slope表中
@@ -338,7 +338,6 @@ def insertDataFrom3drToTableSlope(prjpath, chainage, prjname):
         三、根据路肩和边沟位置确定边坡范围
             1、第i级边坡+第i级平台组成一组数据（缺失部件时用0补齐）
             2、边坡可分为：1）路肩与边沟之间边坡；2）边沟与坡脚之间边坡
-
     '''
 
     try:
@@ -354,6 +353,11 @@ def insertDataFrom3drToTableSlope(prjpath, chainage, prjname):
         regx = r'\w+.?\w+'
         tfData = re.findall(regx, tfData_temp, re.MULTILINE)
         # print(tfData[0], tfData[4], tfData[5])
+    try:
+        len(tfData)
+    except:
+        print(f'TF文件中不存在桩号{chainage}')
+        return ''
     # 二、得到边沟数据
     with mysql.UsingMysql(log_time=False, db=prjname) as um:
         um.cursor.execute(f"select chainage,左右侧,3dr中起始位置,线段个数  from drainageditch where chainage='{chainage}'")
@@ -382,7 +386,6 @@ def insertDataFrom3drToTableSlope(prjpath, chainage, prjname):
             roadShoulderPosition=''
             drainagePosition=''
             drainageLinesCount=''
-
             regx = r'-?\d+.?\d*'
             drData_list = re.findall(regx, cross_section[i_LOrR], re.MULTILINE)
             print('drData_list', drData_list)
@@ -491,6 +494,10 @@ def findBridgeChainageFromABChainage(chainageA, chainageB, prjpath, lOrRSideOfsu
             i = i + 1
         chainageA_nobreak = road.switchBreakChainageToNoBreak(chainageA, prjpath)
         chainageB_nobreak = road.switchBreakChainageToNoBreak(chainageB, prjpath)
+        try:
+            (chainageA_nobreak + chainageB_nobreak) / 2
+        except:
+            print(chainageA_nobreak,chainageB_nobreak)
         return road.switchNoBreakToBreakChainage((chainageA_nobreak+chainageB_nobreak)/2, prjpath)
 def findSlopeFromLine(linedata, i_slopeStart, i_slopeEnd, platformFilters='default', slopeFilters='default'):
     '''
@@ -684,8 +691,10 @@ def findDrainageDitchFromLine(linedata,drainageFilters='default'):
                         m=0
             else:
                 m=0
+                i = i - 1
             i=i+1
         if len(res)!=0:
+            # print(f'边沟{res}')
             return res
         else:
             return False
@@ -896,7 +905,7 @@ def creatMysqlSlopeTable(databaseName):
     conn.close()
     print('slope表创建成功V2.0')
 def creatMysqlChainageTable(databaseName):
-    #在databaseName数据库中新建chainage表
+    #在databaseName数据库中新建chainage表、typeofslopeprot表
     prjname=databaseName
     conn = pymysql.connect(user = "root",passwd = "sunday")#,db = "mysql")
     cursor = conn.cursor()
@@ -911,6 +920,21 @@ def creatMysqlChainageTable(databaseName):
           PRIMARY KEY (`id`)
         ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=0"""
     cursor.execute(sql)
+    cursor.execute('DROP TABLE IF EXISTS typeofslopeprot')
+    sql = '''CREATE TABLE IF NOT EXISTS typeofslopeprot(
+        `id` INT(2) NOT NULL AUTO_INCREMENT,
+        `坡度min` FLOAT(10),
+        `坡度max` FLOAT(10), 
+        `坡高min` FLOAT(10),
+        `坡高max` FLOAT(10), 
+        `防护类型` VARCHAR(50),
+        PRIMARY KEY (`id`)
+        )ENGINE=INNODB DEFAULT CHARSET=utf8;'''
+    cursor.execute(sql)
+    insertdatalist = [[1,-10,-1,-4,0,'绿化'],
+                      [2,-10,-1,-20,-4,'拱形骨架护坡']]
+    sql = "INSERT INTO typeofslopeprot VALUES(%s,%s,%s,%s,%s,%s)"
+    cursor.executemany(sql, insertdatalist)
     cursor.close()
     conn.commit()
     conn.close()
