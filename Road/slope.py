@@ -72,6 +72,7 @@ import math
 import mysql
 import copy
 import glob
+# import filedialog
 if __name__ == "__main__":
     root = tk.Tk()
     root.withdraw()
@@ -80,13 +81,14 @@ if __name__ == "__main__":
     for prjfile in glob.glob('*.prj'):
         prjpath = folderpath+'\\'+prjfile
         if os.path.exists(prjpath) == False:
-            msgbox = gui_filenotfine(f'{prjpath} path:不在存在')
+            msgbox = road.gui_filenotfine(f'{prjpath} path:不在存在')
             continue
         prjpath = prjpath.replace('/', '\\')
         slopefilepath_list = prjpath.split('\\')
         regx = r'(.+)(?=\.\w+)'
         prjname = re.findall(regx, slopefilepath_list[-1])[0]
         prjname = prjname.replace('+', '')
+        print(prjname)
         # prjpath = r'F:\2020-10-14长寿支线\4-资料\王勇\K -12-16 - 副本\K.prj'
         # prjname='长寿支线'
         # prjpath = r'D:\Download\QQ文档\297358842\FileRecv\元蔓纬地设计文件\元蔓纬地设计文件\K27改移老路调坡上报\K27+400改移地方道路.prj'

@@ -13,13 +13,26 @@
 #注意事项
 #使用说明：直接调用getfilepath('dat')函数，例resu=getfilepath('Dat'),即历所选文件夹内所有dat（e.dat）类型文件，指定文件夹内需包含e.are,e.dmx文件(dat,are,dmx文件名必须相同否则找不到对应文件)，
 # 2.3-pro 已考虑TF中正负号的问题
-
+'''
+    1		        整幅路基
+    1	中央分隔带	整幅路基
+    1		        整幅路基
+    1	路缘带	    整幅路基
+    2	行车道	    整幅路基	桥梁
+    3		        整幅路基	桥梁
+    4		        整幅路基	桥梁
+    5	土路肩	    整幅路基	桥梁
+    6	填方边坡	    整幅路基
+    7	边沟\排水沟	整幅路基
+    8	挖方边坡	    整幅路基
+'''
 import re
 import os
 import tkinter as tk
 from tkinter import filedialog
 from tkinter import *
 import sys
+import road
 def get3DdataFromDatfile(path): # 1 从dat文件中获取逐桩横断面三维数据
     DatFile=''
     with open(path, "r") as FData:
@@ -37,9 +50,9 @@ def trans3DdataTo3drFile(get3DdataFromDatfile,path_3drsaved):   # 2 将逐桩横
         pathregx = r'(.+\\?\/?\S+\.)\w+$'
         path_list = re.findall(pathregx, path_3drsaved, re.MULTILINE)
         path_dmx = path_list[0] + 'dmx'
-        path_errfile =path_list[0] + 'err.txt'
-        whetherExitKeyInDmxfile=whetherContainTheKeyInDmxfile(key=key[0],path_Dmxfile=path_dmx)
-        if len(whetherExitKeyInDmxfile)==0:
+        path_errfile = path_list[0] + 'err.txt'
+        whetherExitKeyInDmxfile = whetherContainTheKeyInDmxfile(key=key[0], path_Dmxfile=path_dmx)
+        if len(whetherExitKeyInDmxfile) == 0:
             errfile = open(path_errfile, 'a')
             errfile.write(f'{path_dmx}中未找到桩号：{key[0]}，3dr文件中不显示该桩号数据\n')
             errfile.close()
@@ -47,12 +60,12 @@ def trans3DdataTo3drFile(get3DdataFromDatfile,path_3drsaved):   # 2 将逐桩横
         #</>
             file_3dr = open(path_3drsaved, 'a')
             file_3dr.write(key[0] + '\n')
-            regx=r'((?:\d+\.\d+ ?){3})[\n\r]'
-            key_design_xyz = re.findall(regx,res,re.MULTILINE)  #中桩三维坐标
-            key_design_xyz=key_design_xyz[0].split( )
-            key_design_xyz=list(map(float,key_design_xyz))
+            regx = r'((?:\d+\.\d+ ?){3})[\n\r]'
+            key_design_xyz = re.findall(regx, res, re.MULTILINE)  #中桩三维坐标
+            key_design_xyz = key_design_xyz[0].split( )
+            key_design_xyz = list(map(float, key_design_xyz))
             regx = r'^(\d+)[\n\r]'
-            TollNum_HdmPoints=re.findall(regx, res, re.MULTILINE)
+            TollNum_HdmPoints = re.findall(regx, res, re.MULTILINE)
             regx = r'(?:(?:\d+\.\d+ ){3}\d[\n\r]?)+'
             HdmPoints_xyz=re.findall(regx, res, re.MULTILINE)   #左右侧横断面三维坐标
             # 2.2 将list中的横断面三维数据转为3dr格式数据
@@ -73,7 +86,7 @@ def trans3DdataTo3drFile(get3DdataFromDatfile,path_3drsaved):   # 2 将逐桩横
                     file_3dr.write(str(dist_3dr) + '\t'+str(Hdmlist[2])+'\t')
                 file_3dr.write('\n')
             file_3dr.write('\n')
-    file_3dr.close()
+            file_3dr.close()
 def TransEiDatToHintTf(get3DdataFromDatfile,path_tfsaved,path_EiAre):
     # 2.1 用正则将每个横断面的dat数据中桩号、三维坐标放入list 中（key，HdmPoints_xyz）
     for res in get3DdataFromDatfile:
@@ -199,8 +212,8 @@ def TransEiDatToHintTf(get3DdataFromDatfile,path_tfsaved,path_EiAre):
         path_list = re.findall(pathregx, path_tfsaved, re.MULTILINE)
         path_dmx = path_list[0] + 'dmx'
         path_errfile =path_list[0] + 'err.txt'
-        whetherExitKeyInDmxfile=whetherContainTheKeyInDmxfile(key=key[0],path_Dmxfile=path_dmx)
-        if len(whetherExitKeyInDmxfile)==0:
+        whetherExitKeyInDmxfile = whetherContainTheKeyInDmxfile(key=key[0], path_Dmxfile=path_dmx)
+        if len(whetherExitKeyInDmxfile) == 0:
             errfile = open(path_errfile, 'a')
             errfile.write(f'{path_dmx}中未找到桩号：{key[0]}，tf文件中不显示该桩号数据\n')
             errfile.close()
@@ -208,7 +221,7 @@ def TransEiDatToHintTf(get3DdataFromDatfile,path_tfsaved,path_EiAre):
             file_3dr.write(str(Tflist).replace(',','\t').replace('[','').replace(']','').replace('\'',''))
             file_3dr.write('\n')
         #</>
-    file_3dr.close()
+        file_3dr.close()
 def getHdmAreFromEIarefile(key,EiarefilePath):
     # 功能通过已知桩号key，查找EiarefilePath中桩号key对应行的数据
     try:
@@ -268,10 +281,9 @@ def initFunction(path_EiDat):
     result1=trans3DdataTo3drFile(data_dat,path_3drsaved)
     result2 = TransEiDatToHintTf(data_dat, path_tfsaved,path_Eiare)
     print('运行结束')
-
 def getfilepath(filetype):
     #打开文件夹对话框，获得该文件夹下指定类型文件的绝对路径,例：filetype=exe
-    filetype=filetype.lower()
+    filetype = filetype.lower()
     root = tk.Tk()
     root.withdraw()
     Folderpath = filedialog.askdirectory(title="选择EI dat are dmx 所在文件夹")  # 获得选择好的文件夹
@@ -281,14 +293,14 @@ def getfilepath(filetype):
         for filename in filenames:
             if os.path.splitext(filename)[1].lower() =='.'+filetype:
                 temp = Folderpath + '/' + filename
-                res=initFunction(temp)
+                res = initFunction(temp)
     '''打开选择文件夹对话框'''
-def whetherContainTheKeyInDmxfile(key,path_Dmxfile):
+def whetherContainTheKeyInDmxfile_prevesion(key, path_Dmxfile): #上一版
     #判断桩号key是否在文件path_Dmxfile中
     key = '{:.1f}'.format(int(float(key) * 10) / 10)
     try:
-        dmxfile=open(path_Dmxfile,'r')
-        data_dmx=dmxfile.read()
+        dmxfile = open(path_Dmxfile,'r')
+        data_dmx = dmxfile.read()
     except:
         rootb = tk.Tk()
         # 创建一个文本Label对象
@@ -301,13 +313,43 @@ def whetherContainTheKeyInDmxfile(key,path_Dmxfile):
         sys.exit()
     else:
         # f'^{key}\d*\\t.+(?=\\n)'
-        key=key.replace('.','\.')
-        regex=f'(?<!\d){key}\\d*[\t| ]'
-        data_dmx=re.findall(regex,data_dmx,re.MULTILINE)
-        return data_dmx
+        key = key.replace('.', '\.')
+        regex = f'(?<!\d){key}\\d*[\t| ]'
+        data_dmx = re.findall(regex, data_dmx, re.MULTILINE)
         dmxfile.close()
-if __name__=="__main__":
-    resu=getfilepath('Dat')
+        return data_dmx
+def whetherContainTheKeyInDmxfile(key, path_Dmxfile):
+    #判断桩号key是否在文件path_Dmxfile中
+    key_list = road.cutInvalidWords_chainage(key)
+    key = ''.join(key_list)
+    print(f'whetherContainTheKeyInDmxfile key:{key}')
+    try:
+        dmxfile = open(path_Dmxfile,'r')
+        data_dmx = dmxfile.read()
+    except:
+        rootb = tk.Tk()
+        # 创建一个文本Label对象
+        textLabel = Label(rootb,  # 将内容绑定在  root 初始框上面
+                          text=f"{path_Dmxfile}文件不存在",
+                          justify=LEFT,  # 用于 指明文本的 位置
+                          padx=10)  # 限制 文本的 位置 , padx 是 x轴的意思 .
+        textLabel.pack(side=LEFT)  # 致命 textlabel 在初识框 中的位置
+        mainloop()
+        sys.exit()
+    else:
+        key = key.replace('.', '\.')
+        # regex = f'(?<!\d){key}\\0*[\t| ]'
+        if key.find('.') == -1:  # 判断是整桩号还是含小数桩号
+            regx = f'^(?<!\w)({key}(?:\.0+)?)(?!\w)'  # 将tf中桩号chainage信息提取
+        else:
+            regx = f'^(?<!\w)({key}0*)(?!\w)'
+        data_dmx = re.findall(regx, data_dmx, re.MULTILINE)
+        print(f'regx:{regx}')
+        print(f'data_dmx:{data_dmx}')
+        dmxfile.close()
+        return data_dmx
+if __name__ == "__main__":
+    resu = getfilepath('Dat')
     rootb = tk.Tk()
     # 创建一个文本Label对象
     rootb.geometry('200x80+200+200')
@@ -316,8 +358,8 @@ if __name__=="__main__":
     #                   justify=LEFT,  # 用于 指明文本的 位置
     #                   padx=10)  # 限制 文本的 位置 , padx 是 x轴的意思 .
     # textLabel.pack(side=LEFT)  # 致命 textlabel 在初识框 中的位置
-    rootb.confirmbutton=Button(rootb,text='运行结束',width=10,command=rootb.quit)
-    rootb.confirmbutton.grid(row=1,column=1)
+    rootb.confirmbutton = Button(rootb, text='运行结束', width=10, command=rootb.quit)
+    rootb.confirmbutton.grid(row=1, column=1)
     mainloop()
 
 
