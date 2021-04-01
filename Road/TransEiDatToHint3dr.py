@@ -1,3 +1,4 @@
+#coding=utf-8
 # 1 从dat文件中获取逐桩横断面三维数据get3DdataFromDatfile(path)
     # 1.1 用正则将每个横断面dat数据放入list res中
 # 2 将逐桩横断面三维数据转为纬地3dr格式数据trans3DdataTo3drFile(get3DdataFromDatfile)

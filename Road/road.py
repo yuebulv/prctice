@@ -6,7 +6,8 @@ import pymysql
 import road
 import mysql
 import copy
-def groupByContinuousChainageAndSum(prjname, sql, field_list, prjpath):
+import roadglobal
+def groupByContinuousChainageAndSum(prjname, sql, prjpath, field_list = 'default'):
     '''
     功能：将sql查询结果，分组输出
     :param prjname:
@@ -19,11 +20,12 @@ def groupByContinuousChainageAndSum(prjname, sql, field_list, prjpath):
         3，头部增加一行起点数据（计算得，尺寸与后一断面一致），尾部增加一行起点数据（计算得，尺寸与前一断面一致），以修正输出结果的起止点和数量，数量可能比实际大
     '''
     groupdata_list = []
-    fieldList = ['左右侧', '第i级', 'S坡度', '位于边沟左右侧']   # 将fieldList中字段（必须与sql结果中字段对应）在结果中列出，可扩展[字段1，字段2]
-    fieldMax = ['最大级数', '坡高']   # 寻找fieldMax中字段的最大值（必须与sql结果中字段对应）在结果中列出，可扩展[字段1，字段2]
-    fieldMin = ['坡高']   # 寻找fieldMin中字段的最小值（必须与sql结果中字段对应）在结果中列出，可扩展[字段1，字段2]
-    fieldSum = [2,'S宽度','S高度','(((S宽度)**2+(S高度)**2)**0.5+((S宽度_last)**2+(S高度_last)**2)**0.5)/2*lenOfchainage']  # 按计算式fieldSum[-1]累加，2表示有两个参数，即计算式fieldSum[-1]有两个参数，暂时不可扩展
-    field_list = [fieldMax, fieldMin, fieldSum, fieldList]
+    if field_list == 'default':
+        fieldList = ['左右侧', '第i级', 'S坡度', '位于边沟左右侧']   # 将fieldList中字段（必须与sql结果中字段对应）在结果中列出，可扩展[字段1，字段2]
+        fieldMax = ['最大级数', '坡高']   # 寻找fieldMax中字段的最大值（必须与sql结果中字段对应）在结果中列出，可扩展[字段1，字段2]
+        fieldMin = ['坡高']   # 寻找fieldMin中字段的最小值（必须与sql结果中字段对应）在结果中列出，可扩展[字段1，字段2]
+        fieldSum = [2, 'S宽度', 'S高度', '坡面面积', '(((S宽度)**2+(S高度)**2)**0.5+((S宽度_last)**2+(S高度_last)**2)**0.5)/2*lenOfchainage']  # 按计算式fieldSum[-1]（计算式名称：坡面面积）累加，2表示有两个参数，即计算式fieldSum[-1]有两个参数，暂时不可扩展
+        field_list = [fieldMax, fieldMin, fieldSum, fieldList]
     res_dic = {'起点': '', '止点': '', '长度': ''}
     with mysql.UsingMysql(log_time=False, db=prjname) as um:
         um.cursor.execute(sql)
@@ -120,13 +122,13 @@ def groupByContinuousChainageAndSum(prjname, sql, field_list, prjpath):
                 print(sumexpression)
                 print(lenOfchainage)
                 try:
-                    res_dic['field_sum'] += eval(sumexpression)
+                    res_dic[field_list[2][-2]] += eval(sumexpression)
                     print(eval(sumexpression))
                 except KeyError:
-                    res_dic['field_sum'] = eval(sumexpression)
+                    res_dic[field_list[2][-2]] = eval(sumexpression)
                     print(eval(sumexpression))
                 lastchainage = chainage
-            res_dic['field_sum'] = "{:+.3f}".format(res_dic['field_sum'])
+            res_dic[field_list[2][-2]] = "{:+.3f}".format(res_dic[field_list[2][-2]])
             res.append(res_dic)
             print(res_dic)
         return res
@@ -825,6 +827,43 @@ def setupChainageTable(prjname,prjpath):
         conn.commit()
         conn.close()
         print('chainage数据导入成功')
+def creatMysqlSlopeProtecTypeTable(databaseName):
+    #在databaseName数据库中新建边坡防护类型表settheprotectiongtypeofslope
+    # 序号 chainage    左右侧(1/2) 位于边沟左右侧(0(无边沟)/1（边沟左侧）/2（边沟右内里）)	边坡类型（1填-1挖） 坡高 最大级数    【第i级平台	第i级平台坡度	第i级平台平距	第i级平台高度	第i级平台坐标x	第i级平台坐标y	第i级平台高程
+                                                                                                               # 	第i级边坡	第i级边坡坡度	第i级边坡平距	第i级边坡高度	第i级边坡坐标x	第i级边坡坐标y	第i级边坡高程】
+    tablename = 'settheprotectiongtypeofslope'
+    prjname = databaseName
+    with mysql.UsingMysql(log_time=False, db=prjname) as um:
+        # conn = pymysql.connect(user="root", passwd="sunday")
+        # cursor = conn.cursor()
+        # conn.select_db(prjname)
+        # cursor.execute(f'drop table if exists {tablename}')
+        um.cursor.execute(f'drop table if exists {tablename}')
+        sql = """CREATE TABLE IF NOT EXISTS `settheprotectiongtypeofslope` (
+            `id` INT(2) NOT NULL AUTO_INCREMENT,
+            `坡度min` Float(10),
+            `坡度max` Float(10),
+            `第i级min` INT(2),
+            `第i级max` INT(2),
+            `最大级数min` INT(2),
+            `最大级数max` INT(2),
+            `高度min` Float(10) ,
+            `高度max` Float(10) ,
+            `坡高min` Float(10),
+            `坡高max` Float(10),
+            `地质` VARCHAR(50),
+            `防护类型` VARCHAR(50),
+            PRIMARY KEY (`id`)
+            ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=0"""
+        um.cursor.execute(sql)
+        slopedataForTable = ((1, -5, -1, 0, 0, 1, 1, -4, 0, -4, 0, '', '填方绿化'),
+                             (2, -5, -1, 0, 0, 1, 10, -50, 0, -50, -4, '', '填方拱形护坡'),
+                             (3, 1, 2, 0, 0, 1, 1, 0, 4, 0, 4, '', '挖方绿化'),
+                             (4, 0.3, 1, 0, 0, 1, 2, 0, 12, 0, 20, '', '填方绿化'),
+                             (5, 0.3, 2, 0, 0, 2, 10, 0, 15, 20, 100, '', '填方绿化'))
+        sql = "insert into settheprotectiongtypeofslope values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"
+        um.cursor.executemany(sql, slopedataForTable)
+    print('settheprotectiongtypeofslope表创建成功V1.0')
 def creatMysqlSlopeTable_v1(databaseName):
     #在databaseName数据库中新建边坡表Slope
     # 序号 chainage    左右侧(1/2) 位于边沟左右侧(0(无边沟)/1（边沟左侧）/2（边沟右内里）)	边坡类型（1填-1挖） 坡高 最大级数    【第i级平台	第i级平台坡度	第i级平台平距	第i级平台高度	第i级平台坐标x	第i级平台坐标y	第i级平台高程
@@ -982,8 +1021,10 @@ def findXPathFromPrj(prjpath,typeOfFindX):
         data_prj=prjfile.read()
         prjfile.close()
         data_prj=data_prj.lower()
-        regx = f'\*\.{typeOfFindX}\).*=\s*(.*)\s*(?=\n)'
+        # regx = f'\*\.{typeOfFindX}\).*=\s*(.*)\s*(?=\n)'
+        regx = roadglobal.regx_FindXPathFromPrj(typeOfFindX)
         res = re.findall(regx, data_prj, re.MULTILINE)
+        # print(f'res:{res}')
         try:
             res[0]=res[0].strip()
         except:
@@ -998,7 +1039,7 @@ def findXPathFromPrj(prjpath,typeOfFindX):
                 res[0]=res[0].replace('/','\\')
                 res[0]=res[0].split('\\')
                 res[0]=res[0][len(res[0])-1].strip()
-                if res[0].find('.') ==-1:
+                if res[0].find('.') == -1:
                     msgbox = gui_filenotfine(f'findXPathFromPrj {typeOfFindX} path:{res[0]}')
                     return ""
                 else:
