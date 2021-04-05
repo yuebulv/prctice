@@ -14,7 +14,7 @@
    <string>Road数量计算工具</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <widget class="QPushButton" name="pushButton">
+   <widget class="QPushButton" name="pushButton_quit">
     <property name="geometry">
      <rect>
       <x>450</x>
@@ -24,7 +24,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>PushButton</string>
+     <string>退出</string>
     </property>
    </widget>
    <widget class="QGroupBox" name="groupBox">
@@ -234,9 +234,9 @@
     <widget class="QLineEdit" name="lineEdit_prjpath_1">
      <property name="geometry">
       <rect>
-       <x>410</x>
+       <x>400</x>
        <y>50</y>
-       <width>113</width>
+       <width>481</width>
        <height>21</height>
       </rect>
      </property>
@@ -254,9 +254,9 @@
     <widget class="QLineEdit" name="lineEdit_prjpath_2">
      <property name="geometry">
       <rect>
-       <x>410</x>
+       <x>400</x>
        <y>100</y>
-       <width>113</width>
+       <width>481</width>
        <height>21</height>
       </rect>
      </property>
@@ -274,9 +274,9 @@
     <widget class="QLineEdit" name="lineEdit_prjpath_3">
      <property name="geometry">
       <rect>
-       <x>410</x>
+       <x>400</x>
        <y>160</y>
-       <width>113</width>
+       <width>481</width>
        <height>21</height>
       </rect>
      </property>
@@ -296,7 +296,7 @@
       <rect>
        <x>400</x>
        <y>200</y>
-       <width>113</width>
+       <width>481</width>
        <height>21</height>
       </rect>
      </property>
@@ -316,7 +316,7 @@
       <rect>
        <x>400</x>
        <y>240</y>
-       <width>113</width>
+       <width>481</width>
        <height>21</height>
       </rect>
      </property>
@@ -326,7 +326,7 @@
       <rect>
        <x>400</x>
        <y>280</y>
-       <width>113</width>
+       <width>481</width>
        <height>21</height>
       </rect>
      </property>
@@ -346,7 +346,7 @@
       <rect>
        <x>400</x>
        <y>310</y>
-       <width>113</width>
+       <width>481</width>
        <height>21</height>
       </rect>
      </property>

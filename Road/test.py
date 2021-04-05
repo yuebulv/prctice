@@ -14,10 +14,8 @@ from PySide2.QtUiTools import QUiLoader
 from PySide2.QtCore import QFile
 
 class Stats:
-
     def __init__(self):
         # 从文件中加载UI定义
-
         # 从 UI 定义中动态 创建一个相应的窗口对象
         # 注意：里面的控件对象也成为窗口对象的属性了
         # 比如 self.ui.button , self.ui.textEdit
@@ -26,7 +24,7 @@ class Stats:
         qfile_stats.close()
         self.ui = QUiLoader().load(qfile_stats)
         self.ui.action_openprj.triggered.connect(self.openPrjFile)
-        self.ui.lineEdit_prjname_1.setText('你好，白月黑羽')
+        self.ui.pushButton_quit.clicked.connect(self.quitSoftware)
         # self.ui.button.clicked.connect(self.handleCalc)
     def openPrjFile(self):
         root = tk.Tk()
@@ -44,7 +42,24 @@ class Stats:
             prjname = re.findall(regx, slopefilepath_list[-1])[0]
             prjname = prjname.replace('+', '')
 
-            self.ui.lineEdit_prjname_1.setText('你好，白月黑羽')
+            self.ui.lineEdit_prjname_1.setText(prjname)
+            self.ui.lineEdit_prjpath_1.setText(prjpath)
+            i=2
+            uiWidget = f"lineEdit_prjname_{i}"
+            # self.ui.uiWidget.setText(prjname)
+            # self.ui.setAttribute(uiWidget, prjname)
+            # setattr(self.ui, uiWidget, prjname)
+            # print(self.ui.lineEdit_prjname_2.text)
+
+            obj = self.ui
+            print(self.ui.__getattribute__('lineEdit_prjpath_1'))
+            print(dir(obj))
+            # obj.lineEdit_prjname_3.setText(prjname)
+            setattr(obj, 'lineEdit_prjname_2', prjname)
+            print(obj)
+            print(getattr(obj,'lineEdit_prjpath_1'))
+    def quitSoftware(self):
+        sys.exit()
     def handleCalc(self):
         info = self.ui.textEdit.toPlainText()
 
