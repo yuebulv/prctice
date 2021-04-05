@@ -1,0 +1,12 @@
+# Default ignored files
+/shelf/
+/workspace.xml
+
+# Byte-compiled / optimized / DLL files
+.__pycache__
+.Road/__pycache__
+*.py[cod]
+*$py.class
+
+# pycharm
+.idea
