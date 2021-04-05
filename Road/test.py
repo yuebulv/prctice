@@ -1,4 +1,5 @@
 from tkinter import *
+import tkinter.filedialog
 import tkinter as tk
 import os
 import road
@@ -6,10 +7,11 @@ import pymysql
 import math
 import mysql
 import copy
+
 import glob
 from PySide2.QtWidgets import QApplication, QMessageBox
 from PySide2.QtUiTools import QUiLoader
-from PySide2.QtCore import Qfile
+from PySide2.QtCore import QFile
 
 class Stats:
 
@@ -19,19 +21,17 @@ class Stats:
         # 从 UI 定义中动态 创建一个相应的窗口对象
         # 注意：里面的控件对象也成为窗口对象的属性了
         # 比如 self.ui.button , self.ui.textEdit
-        qfile_stats = Qfile("ui/main.ui")
-        qfile_stats.open(Qfile.ReadOnly)
+        qfile_stats = QFile("../ui/main.ui")
+        qfile_stats.open(QFile.ReadOnly)
         qfile_stats.close()
         self.ui = QUiLoader().load(qfile_stats)
-        self.ui.actionOpenFile.triggered.connect(self.openPrjFile)
-
-
-
+        self.ui.action_openprj.triggered.connect(self.openPrjFile)
+        self.ui.lineEdit_prjname_1.setText('你好，白月黑羽')
         # self.ui.button.clicked.connect(self.handleCalc)
     def openPrjFile(self):
         root = tk.Tk()
         root.withdraw()
-        folderpath = filedialog.askdirectory(title='请选择prj文件所在文件夹')
+        folderpath = tkinter.filedialog.askdirectory(title='请选择prj文件所在文件夹')
         os.chdir(folderpath)
         for prjfile in glob.glob('*.prj'):
             prjpath = folderpath + '\\' + prjfile
@@ -43,6 +43,8 @@ class Stats:
             regx = r'(.+)(?=\.\w+)'
             prjname = re.findall(regx, slopefilepath_list[-1])[0]
             prjname = prjname.replace('+', '')
+
+            self.ui.lineEdit_prjname_1.setText('你好，白月黑羽')
     def handleCalc(self):
         info = self.ui.textEdit.toPlainText()
 

@@ -828,9 +828,16 @@ def setupChainageTable(prjname,prjpath):
         conn.close()
         print('chainage数据导入成功')
 def creatMysqlSlopeProtecTypeTable(databaseName):
-    #在databaseName数据库中新建边坡防护类型表settheprotectiongtypeofslope
-    # 序号 chainage    左右侧(1/2) 位于边沟左右侧(0(无边沟)/1（边沟左侧）/2（边沟右内里）)	边坡类型（1填-1挖） 坡高 最大级数    【第i级平台	第i级平台坡度	第i级平台平距	第i级平台高度	第i级平台坐标x	第i级平台坐标y	第i级平台高程
-                                                                                                               # 	第i级边坡	第i级边坡坡度	第i级边坡平距	第i级边坡高度	第i级边坡坐标x	第i级边坡坐标y	第i级边坡高程】
+    '''
+    功能：在databaseName数据库中新建边坡防护类型表settheprotectiongtypeofslope
+    表中字段说明：
+        chainagemin 最小桩号（含断链）
+        最大级数min 为本断面的最大级数的最小值
+        高度min   本级边坡高度的最小值
+        坡高min   为本断面的边坡高度（每级边坡高度之和）的最小值
+    :param databaseName:
+    :return:
+    '''
     tablename = 'settheprotectiongtypeofslope'
     prjname = databaseName
     with mysql.UsingMysql(log_time=False, db=prjname) as um:
@@ -841,6 +848,8 @@ def creatMysqlSlopeProtecTypeTable(databaseName):
         um.cursor.execute(f'drop table if exists {tablename}')
         sql = """CREATE TABLE IF NOT EXISTS `settheprotectiongtypeofslope` (
             `id` INT(2) NOT NULL AUTO_INCREMENT,
+            `chainagemin` VARCHAR(50),
+            `chainagemax` VARCHAR(50),
             `坡度min` Float(10),
             `坡度max` Float(10),
             `第i级min` INT(2),
@@ -856,12 +865,12 @@ def creatMysqlSlopeProtecTypeTable(databaseName):
             PRIMARY KEY (`id`)
             ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=0"""
         um.cursor.execute(sql)
-        slopedataForTable = ((1, -5, -1, 0, 0, 1, 1, -4, 0, -4, 0, '', '填方绿化'),
-                             (2, -5, -1, 0, 0, 1, 10, -50, 0, -50, -4, '', '填方拱形护坡'),
-                             (3, 1, 2, 0, 0, 1, 1, 0, 4, 0, 4, '', '挖方绿化'),
-                             (4, 0.3, 1, 0, 0, 1, 2, 0, 12, 0, 20, '', '填方绿化'),
-                             (5, 0.3, 2, 0, 0, 2, 10, 0, 15, 20, 100, '', '填方绿化'))
-        sql = "insert into settheprotectiongtypeofslope values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"
+        slopedataForTable = ((1, 0, 100000, -5, -1, 0, 0, 1, 1, -4, 0, -4, 0, '', '填方绿化1'),
+                             (2, 0, 100000, -5, -1, 0, 0, 1, 10, -50, 0, -50, -4, '', '填方拱形护坡'),
+                             (3, 0, 100000, 1, 2, 0, 0, 1, 1, 0, 4, 0, 4, '', '挖方绿化'),
+                             (4, 0, 100000, 0.3, 1, 0, 0, 1, 2, 0, 12, 0, 20, '', '填方绿化2'),
+                             (5, 0, 100000, 0.3, 2, 0, 0, 2, 10, 0, 15, 20, 100, '', '填方绿化3'))
+        sql = "insert into settheprotectiongtypeofslope values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"
         um.cursor.executemany(sql, slopedataForTable)
     print('settheprotectiongtypeofslope表创建成功V1.0')
 def creatMysqlSlopeTable_v1(databaseName):
