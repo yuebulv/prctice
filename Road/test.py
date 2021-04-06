@@ -83,15 +83,19 @@ class Stats:
                     \n薪资20000 以下的有：\n{salary_below_20k}'''
                     )
 
-app = QApplication([])
-stats = Stats()
-stats.ui.show()
-app.exec_()
+# app = QApplication([])
+# stats = Stats()
+# stats.ui.show()
+# app.exec_()
 
 
-# if __name__ == "__main__":
-#     root = Tk()
-#     root.geometry('400x100+200+300')
-#     root.title("gui")
-#     app = Appliction(root)
-#     root.mainloop()
+if __name__ == "__main__":
+    # root = Tk()
+    # root.geometry('400x100+200+300')
+    # root.title("gui")
+    # app = Appliction(root)
+    # root.mainloop()
+    res = [1,2,5,3,6,8]
+    res = []
+    for i in enumerate(res):
+        print(i)

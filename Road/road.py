@@ -7,6 +7,8 @@ import road
 import mysql
 import copy
 import roadglobal
+
+
 def groupByContinuousChainageAndSum(prjname, sql, prjpath, field_list = 'default'):
     '''
     功能：将sql查询结果，分组输出
@@ -134,7 +136,9 @@ def groupByContinuousChainageAndSum(prjname, sql, prjpath, field_list = 'default
         return res
         # print(f'groupdata_list:{groupdata_list}')
         # print("-- 当前数量: %d " % len(mysqldatas))
-def isbridgeOrTunnel(chainage,prjpath,lOrRSideOfsubgrade=1):
+
+
+def isbridgeOrTunnel(chainage, prjpath, lOrRSideOfsubgrade=1):
     '''
     功能：判断chainage路基类型，3表示桥梁、4表示隧道、否则为‘’
     :param chainage:
@@ -145,15 +149,15 @@ def isbridgeOrTunnel(chainage,prjpath,lOrRSideOfsubgrade=1):
     pathOfCtr = road.findXPathFromPrj(prjpath, 'ctr')
     try:
         ctrfile = open(pathOfCtr,'r')
-    except: # except FileNotFoundError:
+    except:  # except FileNotFoundError:
         msgbox = road.gui_filenotfine(f'{pathOfCtr}文件不存在')
         sys.exit()
     else:
-        ctrFileData=ctrfile.read().upper()
+        ctrFileData = ctrfile.read().upper()
         ctrfile.close()
         regx_qh = r'QHSJ\.DAT([\s|\S]+)HDSJ\.DAT'                                                         #软条件，随ctr格式变化
         regx_sd = r'SUIDAO\.DAT([\s|\S]+)SHUIZHUNDIAN\.DAT'
-        regx_list = [regx_qh,regx_sd]
+        regx_list = [regx_qh, regx_sd]
         i = 3
         for regx in regx_list:
             qhdatas = re.findall(regx, ctrFileData, re.MULTILINE)
@@ -170,10 +174,10 @@ def isbridgeOrTunnel(chainage,prjpath,lOrRSideOfsubgrade=1):
                         qhChain_n = road.switchBreakChainageToNoBreak(qh_list[1], prjpath)
                         chainage_nobreak = road.switchBreakChainageToNoBreak(chainage, prjpath)
                         if qhChain_l <= chainage_nobreak <= qhChain_n:
-                            if i == 3:   #左右幅判断
-                                if float(qh_list[-1])==0:
+                            if i == 3:   # 左右幅判断(根据ctr中A桥梁所在行的最后一位判断-1左幅、1右幅、0整幅)
+                                if float(qh_list[-1]) == 0:
                                     return i
-                                elif float(qh_list[-1])==-1 and float(lOrRSideOfsubgrade) == 1:
+                                elif float(qh_list[-1]) == -1 and float(lOrRSideOfsubgrade) == 1:
                                     return i
                                 elif float(qh_list[-1]) == 1 and float(lOrRSideOfsubgrade) == 2:
                                     return i
@@ -435,10 +439,12 @@ def insertDataFrom3drToTableSlope(prjpath, chainage, prjname):
 
                 #3.5 将数据插入数据表slope
                 if len(slopeDatasFrom3dr) > 0:
-                    slopeType=road.isbridgeOrTunnel(chainage, prjpath,i_LOrR)
-                    if slopeType=='':
-                        slopeType=0
+                    slopeType = road.isbridgeOrTunnel(chainage, prjpath, i_LOrR)
+                    if slopeType == '':
+                        slopeType = 0
                     maxSlopelevel = slopeDatasFrom3dr[-1][1]
+                    if slopeDatasFrom3dr[-1][4] == 0:   # 如果最后一级边坡坡比为0，则认为是分离式路基，边坡级数减-
+                        maxSlopelevel = maxSlopelevel-1
                     for slopedata in slopeDatasFrom3dr:
                         slopedataForTable = [0, cross_section[0], i_LOrR, i_slopeStart, int(i_slopeEnd - i_slopeStart),
                                              slopePostionComparedWithdrainage, slopeType, slopedata[0], maxSlopelevel]
@@ -504,7 +510,7 @@ def findBridgeChainageFromABChainage(chainageA, chainageB, prjpath, lOrRSideOfsu
         return road.switchNoBreakToBreakChainage((chainageA_nobreak+chainageB_nobreak)/2, prjpath)
 def findSlopeFromLine(linedata, i_slopeStart, i_slopeEnd, platformFilters='default', slopeFilters='default'):
     '''
-    功能：得到给定边坡范围边坡信息（i_slopeStart和i_slopeEnd表示边坡在linedata中的开始和结束的位置），
+    功能：得到给定边坡范围边坡信息（i_slopeStart和i_slopeEnd表示边坡在linedata中的开始和结束的位置）
     :param linedata:线段信息，格式要像3dr左侧或右侧横断面格式，组数、平距、高差.....
     :param i_slopeStart:边坡开始于第i_slopeStart组（平距+高差为一组）
     :param i_slopeEnd:边坡止于第i_slopeEnd组（平距+高差为一组）
@@ -518,6 +524,7 @@ def findSlopeFromLine(linedata, i_slopeStart, i_slopeEnd, platformFilters='defau
              ]
              坡高指边坡总高，S指边歧，P指平台
              2、不符合条件时返回res=[]
+     注：坡度为0时，判断为分离式路基；坡度为0段高度不计入坡高，级数
     '''
 
     if platformFilters == 'default':  # 平台判定条件
@@ -547,19 +554,21 @@ def findSlopeFromLine(linedata, i_slopeStart, i_slopeEnd, platformFilters='defau
         if abs(float(pointsOfLinedata[(i + 2) * 2 - 1])) - abs(float(pointsOfLinedata[(i + 2 - 1) * 2 - 1])) < 0:
             print("挡墙")
             return res  # 大概率是挡墙
-        #一、计算宽度、高度、坡度
+        # 一、计算宽度、高度、坡度
         widthOfPoint = float(pointsOfLinedata[(i + 2) * 2 - 1]) - float(pointsOfLinedata[(i + 2 - 1) * 2 - 1])
         widthOfPoint = abs(float('{:.3f}'.format(widthOfPoint)))
         heightOfPoint = float(pointsOfLinedata[(i + 2) * 2]) - float(pointsOfLinedata[(i + 2 - 1) * 2])
         heightOfPoint = float('{:.3f}'.format(heightOfPoint))
-        heightSum = heightSum +heightOfPoint
+        heightSum = heightSum + heightOfPoint
         try:
             gradientOfPint = widthOfPoint / heightOfPoint
             gradientOfPint = float('{:.3f}'.format(gradientOfPint))
+            if gradientOfPint == 0:  # 分离式路基边坡高度处理
+                heightSum = heightSum - heightOfPoint
         except ZeroDivisionError:
             gradientOfPint = 9999
         # print(widthOfPoint,heightOfPoint,gradientOfPint)
-        #二、处理重合点；合并坡比相近线段
+        # 二、处理重合点；合并坡比相近线段
         if widthOfPoint == 0 and heightOfPoint == 0:
             continue
         try:
@@ -578,7 +587,7 @@ def findSlopeFromLine(linedata, i_slopeStart, i_slopeEnd, platformFilters='defau
                 hlist[i_slopeLevel] = heightOfPoint
                 glist[i_slopeLevel] = gradientOfPint
         [width, height, gradient] = [widthOfPoint, heightOfPoint, gradientOfPint]
-        #三、根据给定条件判定平台、边坡
+        # 三、根据给定条件判定平台、边坡
         for m in range(len(slopeFilter_list)):
             for n in range(len(slopeFilter_list[m])):
                 if eval(slopeFilter_list[m][n]):
@@ -609,7 +618,7 @@ def findSlopeFromLine(linedata, i_slopeStart, i_slopeEnd, platformFilters='defau
         if isSlope[i_slopeLevel] == isPlatform[i_slopeLevel]:
             print('边坡、平台规则有重叠')
         elif isSlope[i_slopeLevel] == True:
-            res_slopei = [heightSum,slopeLevel, wlist[i_slopeLevel], hlist[i_slopeLevel], glist[i_slopeLevel], 0, 0, 0]
+            res_slopei = [heightSum, slopeLevel, wlist[i_slopeLevel], hlist[i_slopeLevel], glist[i_slopeLevel], 0, 0, 0]
             res.append(res_slopei)
             slopeLevel = slopeLevel + 1
         elif isPlatform[i_slopeLevel] == True:
@@ -618,13 +627,17 @@ def findSlopeFromLine(linedata, i_slopeStart, i_slopeEnd, platformFilters='defau
                 res_slopei[-2] = hlist[i_slopeLevel]
                 res_slopei[-1] = glist[i_slopeLevel]
             except:
-                res_slopei = [heightSum,slopeLevel - 1, 0, 0, 0, 0, 0, 0]
+                res_slopei = [heightSum, slopeLevel - 1, 0, 0, 0, 0, 0, 0]
                 res_slopei[-3] = wlist[i_slopeLevel]
                 res_slopei[-2] = hlist[i_slopeLevel]
                 res_slopei[-1] = glist[i_slopeLevel]
                 res.append(res_slopei)
                 res_slopei = []
         i_slopeLevel = i_slopeLevel + 1
+
+    # 修改坡高
+    for i, tempslope in enumerate(res):
+        res[i][0] = heightSum
     return res
 def findDrainageDitchFromLine(linedata,drainageFilters='default'):
     #功能：根据给定的边沟/排水沟判定条件drainageFilters，从一条线linedata中找出边沟/排水沟，返回res=[6,3],表示linedata中第6段线开始为边沟/排水沟，边沟/排水沟由3条线段组成。
@@ -865,11 +878,19 @@ def creatMysqlSlopeProtecTypeTable(databaseName):
             PRIMARY KEY (`id`)
             ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=0"""
         um.cursor.execute(sql)
-        slopedataForTable = ((1, 0, 100000, -5, -1, 0, 0, 1, 1, -4, 0, -4, 0, '', '填方绿化1'),
-                             (2, 0, 100000, -5, -1, 0, 0, 1, 10, -50, 0, -50, -4, '', '填方拱形护坡'),
-                             (3, 0, 100000, 1, 2, 0, 0, 1, 1, 0, 4, 0, 4, '', '挖方绿化'),
-                             (4, 0, 100000, 0.3, 1, 0, 0, 1, 2, 0, 12, 0, 20, '', '填方绿化2'),
-                             (5, 0, 100000, 0.3, 2, 0, 0, 2, 10, 0, 15, 20, 100, '', '填方绿化3'))
+        slopedataForTable = ((1, 0, 100000, -5, -1, 1, 1, 1, 10, -3, 0, -3, 0, '', '填方喷播植草灌护坡'),
+                             (2, 0, 100000, -5, -1, 1, 10, 1, 10, -8, -0, -8, -3, '', '填方方格网植草护坡'),
+                             (3, 0, 100000, -5, -1, 1, 10, 1, 10, -60, -0, -60, -8, '', '填方拱形骨架衬砌护坡'),
+                             (4, 0, 100000, 0.5, 1.5, 1, 10, 1, 10, 0, 4, 0, 4, '', '挖方喷播植草护坡'),
+                             (5, 0, 100000, 0.5, 1.5, 1, 10, 1, 10, 0, 10, 4, 10, '', 'CF网植草防护'),
+                             (6, 0, 100000, 0.5, 1.5, 1, 2, 2, 2, 0, 20, 10, 21, '', '挂双网喷射有机基材'),
+                             (7, 0, 100000, 0.1, 1.5, 1, 3, 3, 3, 0, 30, 20, 31, '', '锚杆框架梁植草防护'),
+                             (8, 0, 100000, 0.1, 1.5, 1, 10, 4, 10, 0, 100, 30, 100, '', '深挖路基'),
+                             (9, 0, 100000, 1.5, 9999, 1, 10, 1, 10, 0, 100, 0, 100, '', '特殊挖方边坡'),
+                             (10, 0, 100000, -0.3, -0.01, 1, 1, 1, 2, 1, 15, -15, -1, '', '路肩墙'),
+                             (11, 0, 100000, -0.3, -0.01, 1, 1, 1, 2, 0, 1, -1, -0, '', '护肩'),
+                             (12, 0, 100000, -0.3, -0.01, 2, 10, 2, 10, 2, 14, -34, 0, '', '路堤墙'),
+                             (13, 0, 100000, -0.3, -0.01, 2, 10, 2, 10, 0, 2, -100, -0, '', '护脚'))
         sql = "insert into settheprotectiongtypeofslope values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"
         um.cursor.executemany(sql, slopedataForTable)
     print('settheprotectiongtypeofslope表创建成功V1.0')
@@ -956,7 +977,7 @@ def creatMysqlSlopeTable(databaseName):
 def creatMysqlChainageTable(databaseName):
     #在databaseName数据库中新建chainage表、typeofslopeprot表
     prjname=databaseName
-    conn = pymysql.connect(user = "root",passwd = "sunday")#,db = "mysql")
+    conn = pymysql.connect(user="root", passwd="sunday")
     cursor = conn.cursor()
     cursor.execute(f'CREATE DATABASE IF NOT EXISTS {prjname} DEFAULT CHARSET utf8 COLLATE utf8_general_ci;')
     conn.select_db(prjname)
