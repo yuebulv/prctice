@@ -90,12 +90,4 @@ class Stats:
 
 
 if __name__ == "__main__":
-    # root = Tk()
-    # root.geometry('400x100+200+300')
-    # root.title("gui")
-    # app = Appliction(root)
-    # root.mainloop()
-    res = [1,2,5,3,6,8]
-    res = []
-    for i in enumerate(res):
-        print(i)
+    print(round(3.141592,3))

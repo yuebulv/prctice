@@ -90,6 +90,7 @@ if __name__ == "__main__":
         prjname = re.findall(regx, slopefilepath_list[-1])[0]
         prjname = prjname.replace('+', '')
         # print(prjname)
+
         #一、 生成数据表chainage
         road.setupChainageTable(prjname, prjpath)
         road.creatMysqlDrainageDitchTable(prjname)
@@ -119,6 +120,13 @@ if __name__ == "__main__":
         print(slopefilepath)
         outputslopefile = open(slopefilepath, 'w')
 
+        fieldList = ['左右侧', '第i级', 'S坡度', '位于边沟左右侧', '防护类型']  # 将fieldList中字段（必须与sql结果中字段对应）在结果中列出，可扩展[字段1，字段2]
+        fieldMax = ['最大级数', '坡高']  # 寻找fieldMax中字段的最大值（必须与sql结果中字段对应）在结果中列出，可扩展[字段1，字段2]
+        fieldMin = ['坡高']  # 寻找fieldMin中字段的最小值（必须与sql结果中字段对应）在结果中列出，可扩展[字段1，字段2]
+        fieldSum = [2, 'S宽度', 'S高度', '坡面面积',
+                    '(((S宽度)**2+(S高度)**2)**0.5+((S宽度_last)**2+(S高度_last)**2)**0.5)/2*lenOfchainage']
+        field_list = [fieldMax, fieldMin, fieldSum, fieldList]
+
         with mysql.UsingMysql(log_time=False, db=prjname) as um:    #数据表settheprotectiongtypeofslope中获取防护类型
             sql = f"select 防护类型 from settheprotectiongtypeofslope "
             um.cursor.execute(sql)
@@ -133,19 +141,19 @@ if __name__ == "__main__":
                                 FROM slope,settheprotectiongtypeofslope sp,chainage
                                 where slope.边坡类型<3 AND slope.左右侧={lorR_slope} and slope.位于边沟左右侧={lorR_slope_drainage} AND `第i级`={slopelevel}
                                 AND slope.chainage=chainage.chainage
-                                AND slope.第i级 BETWEEN SP.第i级min AND sp.第i级max 
-                                AND slope.S坡度 BETWEEN SP.坡度min AND sp.坡度max 
+                                AND slope.第i级 BETWEEN SP.第i级min AND sp.第i级max
+                                AND slope.S坡度 BETWEEN SP.坡度min AND sp.坡度max
                                 AND slope.最大级数 BETWEEN sp.最大级数min And sp.最大级数max
                                 AND slope.`S高度` BETWEEN sp.高度min And sp.高度max
                                 AND slope.`坡高` BETWEEN sp.坡高min And sp.坡高max
                                 AND sp.`防护类型`='{protype}'
                                 ORDER BY id_chainage ASC;'''
-                        fieldList = ['左右侧', '第i级', 'S坡度', '位于边沟左右侧', '防护类型']  # 将fieldList中字段（必须与sql结果中字段对应）在结果中列出，可扩展[字段1，字段2]
-                        fieldMax = ['最大级数', '坡高']  # 寻找fieldMax中字段的最大值（必须与sql结果中字段对应）在结果中列出，可扩展[字段1，字段2]
-                        fieldMin = ['坡高']  # 寻找fieldMin中字段的最小值（必须与sql结果中字段对应）在结果中列出，可扩展[字段1，字段2]
-                        fieldSum = [2, 'S宽度', 'S高度', '坡面面积',
-                                    '(((S宽度)**2+(S高度)**2)**0.5+((S宽度_last)**2+(S高度_last)**2)**0.5)/2*lenOfchainage']
-                        field_list = [fieldMax, fieldMin, fieldSum, fieldList]
+                        # fieldList = ['左右侧', '第i级', 'S坡度', '位于边沟左右侧', '防护类型']  # 将fieldList中字段（必须与sql结果中字段对应）在结果中列出，可扩展[字段1，字段2]
+                        # fieldMax = ['最大级数', '坡高']  # 寻找fieldMax中字段的最大值（必须与sql结果中字段对应）在结果中列出，可扩展[字段1，字段2]
+                        # fieldMin = ['坡高']  # 寻找fieldMin中字段的最小值（必须与sql结果中字段对应）在结果中列出，可扩展[字段1，字段2]
+                        # fieldSum = [2, 'S宽度', 'S高度', '坡面面积',
+                        #             '(((S宽度)**2+(S高度)**2)**0.5+((S宽度_last)**2+(S高度_last)**2)**0.5)/2*lenOfchainage']
+                        # field_list = [fieldMax, fieldMin, fieldSum, fieldList]
                         slopedata_res = road.groupByContinuousChainageAndSum(prjname, sql, prjpath, field_list)
                         try:
                             outputslopefile.write(str(list(slopedata_res[0].keys())))
@@ -168,29 +176,51 @@ if __name__ == "__main__":
         print(slopefilepath)
         outputslopefile = open(slopefilepath, 'w')
 
-        for lorR_slope in [1, 2]:
-            sql = f'''
-                      SELECT chainage.id id_chainage,dr.*
-                      FROM drainageditch dr,chainage
-                      where dr.左右侧={lorR_slope} 
-                      AND dr.chainage=chainage.chainage
-                      ORDER BY id_chainage ASC;'''
-            fieldList = ['左右侧', '第i级', 'S坡度', '位于边沟左右侧',
-                         '防护类型']  # 将fieldList中字段（必须与sql结果中字段对应）在结果中列出，可扩展[字段1，字段2]
-            fieldMax = ['最大级数', '坡高']  # 寻找fieldMax中字段的最大值（必须与sql结果中字段对应）在结果中列出，可扩展[字段1，字段2]
-            fieldMin = ['坡高']  # 寻找fieldMin中字段的最小值（必须与sql结果中字段对应）在结果中列出，可扩展[字段1，字段2]
-            fieldSum = [2, 'S宽度', 'S高度', '坡面面积',
-                        '(((S宽度)**2+(S高度)**2)**0.5+((S宽度_last)**2+(S高度_last)**2)**0.5)/2*lenOfchainage']
-            field_list = [fieldMax, fieldMin, fieldSum, fieldList]
-            slopedata_res = road.groupByContinuousChainageAndSum(prjname, sql, prjpath, field_list)
-            try:
-                outputslopefile.write(str(list(slopedata_res[0].keys())))
-                outputslopefile.write('\n')
-            except:
-                pass
-            for temp in slopedata_res:
-                outputslopefile.write(str(list(temp.values())))
-                outputslopefile.write('\n')
-                print(temp.values())
+        fieldList = ['左右侧', '边坡类型']  # 将fieldList中字段（必须与sql结果中字段对应）在结果中列出，可扩展[字段1，字段2]
+        fieldMax = ['坡高']  # 寻找fieldMax中字段的最大值（必须与sql结果中字段对应）在结果中列出，可扩展[字段1，字段2]
+        fieldMin = ['坡高']  # 寻找fieldMin中字段的最小值（必须与sql结果中字段对应）在结果中列出，可扩展[字段1，字段2]
+        fieldSum = []
+        field_list = [fieldMax, fieldMin, fieldSum, fieldList]
+        drainTypeSql_list =[['slope.坡高>0', 'slope.`位于边沟左右侧`=2'], ['slope.坡高<0', 'slope.`位于边沟左右侧`=1']]
+        for drainTypeSql in drainTypeSql_list:
+            for lorR_drain in [1, 2]:
+                sql = f'''
+                    SELECT 
+                        chainage.id id_chainage,dr.chainage,any_value(slope.`边坡类型`) 边坡类型,any_value(slope.`坡高`) `坡高`,dr.`左右侧`
+                    FROM 
+                        drainageditch dr
+                    JOIN 
+                        chainage
+                    on 
+                        dr.chainage=chainage.chainage
+                    left JOIN
+                        slope
+                    on 
+                        dr.chainage=slope.chainage
+                    AND
+                        dr.`左右侧`=slope.`左右侧`
+                    where 
+                        dr.左右侧={lorR_drain}
+                    AND
+                        slope.`边坡类型`<3
+                    AND
+                        {drainTypeSql[0]}
+                    AND
+                        {drainTypeSql[1]}
+                    GROUP BY
+                        chainage.id
+                    ORDER BY 
+                        id_chainage ASC;'''
+
+                slopedata_res = road.groupByContinuousChainageAndSum(prjname, sql, prjpath, field_list)
+                try:
+                    outputslopefile.write(str(list(slopedata_res[0].keys())))
+                    outputslopefile.write('\n')
+                except:
+                    pass
+                for temp in slopedata_res:
+                    outputslopefile.write(str(list(temp.values())))
+                    outputslopefile.write('\n')
+                    print(temp.values())
         outputslopefile.close()
         print(f'{slopefilepath}输出成功！')

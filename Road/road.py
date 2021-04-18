@@ -96,41 +96,64 @@ def groupByContinuousChainageAndSum(prjname, sql, prjpath, field_list = 'default
                 res_dic[field] = groupdata_dic_list[0][field]
             # 2.3 计算[fieldMax, fieldMin, fieldSum]中字段值
             for groupdata_dic in groupdata_dic_list:
-                for field_max in field_list[0]:
-                    try:
-                        res_dic[field_max+'max'] = max(groupdata_dic[field_max], res_dic[field_max+'max'])
-                    except KeyError:
-                        res_dic[field_max+'max'] = groupdata_dic[field_max]
-                for field_min in field_list[1]:
-                    try:
-                        res_dic[field_min+'min'] = min(groupdata_dic[field_min], res_dic[field_min+'min'])
-                    except KeyError:
-                        res_dic[field_min+'min'] = groupdata_dic[field_min]
+
+                try:
+                    field_list[0]
+                except IndexError:
+                    pass
+                else:
+                    for field_max in field_list[0]:
+                        try:
+                            res_dic[field_max+'max'] = max(groupdata_dic[field_max], res_dic[field_max+'max'])
+                        except KeyError:
+                            res_dic[field_max+'max'] = groupdata_dic[field_max]
+                        res_dic[field_max + 'max'] = round(res_dic[field_max+'max'], 3)
+                try:
+                    field_list[1]
+                except IndexError:
+                    pass
+                else:
+                    for field_min in field_list[1]:
+                        try:
+                            res_dic[field_min+'min'] = min(groupdata_dic[field_min], res_dic[field_min+'min'])
+                        except KeyError:
+                            res_dic[field_min+'min'] = groupdata_dic[field_min]
+                        res_dic[field_min + 'min'] = round(res_dic[field_min+'min'], 3)
+
                 chainage = road.switchBreakChainageToNoBreak(groupdata_dic['chainage'], prjpath)
                 lenOfchainage = chainage - lastchainage
-                sumexpression = field_list[2][-1]
+
                 # 2.3.1计算[fieldSum]中字段值
-                for i_field_sum in range(0, int(field_list[2][0])):
-                    fieldofsumparameter[i_field_sum] = str(groupdata_dic[field_list[2][i_field_sum+1]])
-                    try:
-                        fieldofsumparameter_last[i_field_sum]
-                    except KeyError:
-                        fieldofsumparameter_last[i_field_sum] = fieldofsumparameter[i_field_sum]
-                    sumexpression = sumexpression.replace(field_list[2][i_field_sum + 1] + '_last', fieldofsumparameter_last[i_field_sum])
-                    sumexpression = sumexpression.replace(field_list[2][i_field_sum+1], fieldofsumparameter[i_field_sum])
-                    # print(f'field_list[2][-1]:{field_list[2][-1]}')
-                    # print(f'field_list[2][i_field_sum+1]:{field_list[2][i_field_sum+1]}')
-                    fieldofsumparameter_last[i_field_sum] = fieldofsumparameter[i_field_sum]
-                print(sumexpression)
-                print(lenOfchainage)
                 try:
-                    res_dic[field_list[2][-2]] += eval(sumexpression)
-                    print(eval(sumexpression))
-                except KeyError:
-                    res_dic[field_list[2][-2]] = eval(sumexpression)
-                    print(eval(sumexpression))
+                    sumexpression = field_list[2][-1]
+                except IndexError:
+                    pass
+                else:
+                    for i_field_sum in range(0, int(field_list[2][0])):
+                        fieldofsumparameter[i_field_sum] = str(groupdata_dic[field_list[2][i_field_sum+1]])
+                        try:
+                            fieldofsumparameter_last[i_field_sum]
+                        except KeyError:
+                            fieldofsumparameter_last[i_field_sum] = fieldofsumparameter[i_field_sum]
+                        sumexpression = sumexpression.replace(field_list[2][i_field_sum + 1] + '_last', fieldofsumparameter_last[i_field_sum])
+                        sumexpression = sumexpression.replace(field_list[2][i_field_sum+1], fieldofsumparameter[i_field_sum])
+                        # print(f'field_list[2][-1]:{field_list[2][-1]}')
+                        # print(f'field_list[2][i_field_sum+1]:{field_list[2][i_field_sum+1]}')
+                        fieldofsumparameter_last[i_field_sum] = fieldofsumparameter[i_field_sum]
+                    print(sumexpression)
+                    print(lenOfchainage)
+                    try:
+                        res_dic[field_list[2][-2]] += eval(sumexpression)
+                        print(eval(sumexpression))
+                    except KeyError:
+                        res_dic[field_list[2][-2]] = eval(sumexpression)
+                        print(eval(sumexpression))
+
                 lastchainage = chainage
-            res_dic[field_list[2][-2]] = "{:+.3f}".format(res_dic[field_list[2][-2]])
+            try:
+                res_dic[field_list[2][-2]] = "{:+.3f}".format(res_dic[field_list[2][-2]])
+            except:
+                pass
             res.append(res_dic)
             print(res_dic)
         return res
