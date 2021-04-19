@@ -7,12 +7,12 @@ import pymysql
 import math
 import mysql
 import copy
-
+import roadglobal
 import glob
 from PySide2.QtWidgets import QApplication, QMessageBox
 from PySide2.QtUiTools import QUiLoader
 from PySide2.QtCore import QFile
-
+import tkinter.messagebox
 class Stats:
     def __init__(self):
         # 从文件中加载UI定义
@@ -90,4 +90,6 @@ class Stats:
 
 
 if __name__ == "__main__":
-    print(round(3.141592,3))
+    a = tkinter.messagebox.askyesno('showinfo', '是否继续',)
+    if a:
+        print(1)
