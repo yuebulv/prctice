@@ -8,6 +8,8 @@ import road
 import mysql
 import copy
 import roadglobal
+
+
 def outputPlatformdrainRange(prjname, prjpath, slopefilepath):
     '''
     功能:输出分组平台截水沟段落及必要参数
@@ -59,6 +61,7 @@ def outputPlatformdrainRange(prjname, prjpath, slopefilepath):
                     print(temp.values())
     outputslopefile.close()
     print(f'{slopefilepath}输出成功！')
+
 
 def outputSlopeRange(prjname, prjpath, slopefilepath):
     '''
@@ -116,6 +119,7 @@ def outputSlopeRange(prjname, prjpath, slopefilepath):
     outputslopefile.close()
     print(f'{slopefilepath}输出成功！')
 
+
 def outputDrainRange(prjname, prjpath, slopefilepath):
     '''
     功能:输出分组排水沟段落及必要参数
@@ -172,6 +176,7 @@ def outputDrainRange(prjname, prjpath, slopefilepath):
                 print(temp.values())
     outputslopefile.close()
     print(f'{slopefilepath}输出成功！')
+
 
 def groupByContinuousChainageAndSum(prjname, sql, prjpath, field_list = 'default'):
     '''
@@ -907,8 +912,10 @@ def findDrainageDitchFromLine(linedata,drainageFilters='default'):
             return False
     except:
         return False
-def getDataFromTf(pathOfTF,chainage='all'):
-    #功能从tfpath中查找桩号为chainage的数据，桩号缺省或桩号为all时查找全部桩号
+
+
+def getDataFromTf(pathOfTF, chainage='all'):
+    # 功能从tfpath中查找桩号为chainage的数据，桩号缺省或桩号为all时查找全部桩号
     prjpath = pathOfTF
     chainage = chainage.strip()
     if os.path.exists(prjpath):
@@ -923,7 +930,7 @@ def getDataFromTf(pathOfTF,chainage='all'):
                 chainage = temp[0] + temp[1]
             except:
                 road.gui_filenotfine(f'函数getDataFromTf中桩号{chainage}错误')
-            if chainage.find('.') == -1:    #判断是整桩号还是含小数桩号
+            if chainage.find('.') == -1:    # 判断是整桩号还是含小数桩号
                 regx = f'^[\t\f ]*[a-zA-Z]?(?:{chainage}(?:\.0+)?)[\t\f ]+.+[\n\r]' # 将tf中桩号chainage信息提取
             else:
                 regx = f'^[\t\f ]*[a-zA-Z]?(?:{chainage}0*)[\t\f ]+.+[\n\r]'   # 将tf中桩号chainage信息提取

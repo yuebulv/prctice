@@ -90,6 +90,10 @@ class Stats:
 
 
 if __name__ == "__main__":
-    a = tkinter.messagebox.askyesno('showinfo', '是否继续',)
-    if a:
-        print(1)
+    # 5.3.3 C型急流槽(挖方平台截水沟到边沟）
+    # 根据挖方平台截水沟段落、截水沟间距、纵坡方向判断
+    # 方法：1）得到挖方段落；2）以挖方段落第1级为准，按给定间距设置急流槽；3）判断急流槽坡度，高度；4）输出急流槽桩号，第i级，高度，坡度，长度，C型急流槽
+    # 不需考虑平台截水沟纵坡，两端截水沟通过调整沟底纵坡汇入急流槽
+    path_of_tf = r'D:\新建文件夹\E\e.tf'
+    temp = road.getDataFromTf(path_of_tf, '10')
+    print(temp)
