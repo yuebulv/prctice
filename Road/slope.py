@@ -73,6 +73,7 @@ import math
 import mysql
 import copy
 import glob
+import roadglobal
 # import filedialog
 if __name__ == "__main__":
     root = tk.Tk()
@@ -91,45 +92,49 @@ if __name__ == "__main__":
         prjname = prjname.replace('+', '')
         # print(prjname)
 
-        #一、 生成数据表chainage
-        road.setupChainageTable(prjname, prjpath)
-        road.creatMysqlDrainageDitchTable(prjname)
-        with mysql.UsingMysql(log_time=False, db=prjname) as um:
-            sql = f"select chainage from chainage "
-            um.cursor.execute(sql)
-            chainageValuesInTable_list_dic = um.cursor.fetchall()
-        chainageValuesInTable_list = [item[key] for item in chainageValuesInTable_list_dic for key in item]
-        chainages = chainageValuesInTable_list
+        # #一、 生成数据表chainage
+        # road.setupChainageTable(prjname, prjpath)
+        # road.creatMysqlDrainageDitchTable(prjname)
+        # with mysql.UsingMysql(log_time=False, db=prjname) as um:
+        #     sql = f"select chainage from chainage "
+        #     um.cursor.execute(sql)
+        #     chainageValuesInTable_list_dic = um.cursor.fetchall()
+        # chainageValuesInTable_list = [item[key] for item in chainageValuesInTable_list_dic for key in item]
+        # chainages = chainageValuesInTable_list
+        #
+        # # 二、 生成数据表DrainageDitchTable
+        # for chainage in chainages:
+        #     threedrpath = road.findXPathFromPrj(prjpath, '3dr')
+        #     temp_insert = road.insertDataToTableDrainageDitchFrom3dr(threedrpath, chainage, prjname)
+        # # 三、新建数据表slope，并导入数据
+        # road.creatMysqlSlopeTable(prjname)
+        # for chainage in chainages:
+        #     road.insertDataFrom3drToTableSlope(prjpath, chainage, prjname)
+        # road.creatMysqlSlopeProtecTypeTable(prjname)
 
-        # 二、 生成数据表DrainageDitchTable
-        for chainage in chainages:
-            threedrpath = road.findXPathFromPrj(prjpath, '3dr')
-            temp_insert = road.insertDataToTableDrainageDitchFrom3dr(threedrpath, chainage, prjname)
-        # 三、新建数据表slope，并导入数据
-        road.creatMysqlSlopeTable(prjname)
-        for chainage in chainages:
-            road.insertDataFrom3drToTableSlope(prjpath, chainage, prjname)
-        road.creatMysqlSlopeProtecTypeTable(prjname)
+        # # 四、输出分组边坡段落及必要参数
+        # # （['起点', '止点', '长度', '左右侧', '第i级', 'S坡度', '位于边沟左右侧', '防护类型', '最大级数max', '坡高max', '坡高min', '坡面面积']）
+        # with mysql.UsingMysql(log_time=False, db=prjname) as um:
+        #     um.cursor.execute(f'drop table if exists {roadglobal.tableName_of_slopeInGroup}')
+        # regx = r'(.+)(?=\.\w+)'
+        # prjfilename = re.findall(regx, slopefilepath_list[-1])
+        # slopefilename = f'{prjfilename[0]}{prjname}slopedata.txt'
+        # slopefilepath_list[-1] = slopefilename
+        # slopefilepath = '\\'.join(slopefilepath_list)
+        # road.outputSlopeRange(prjname, prjpath, slopefilepath)
 
-        # 四、输出分组边坡段落及必要参数
-        # （['起点', '止点', '长度', '左右侧', '第i级', 'S坡度', '位于边沟左右侧', '防护类型', '最大级数max', '坡高max', '坡高min', '坡面面积']）
-        regx = r'(.+)(?=\.\w+)'
-        prjfilename = re.findall(regx, slopefilepath_list[-1])
-        slopefilename = f'{prjfilename[0]}{prjname}slopedata.txt'
-        slopefilepath_list[-1] = slopefilename
-        slopefilepath = '\\'.join(slopefilepath_list)
-        road.outputSlopeRange(prjname, prjpath, slopefilepath)
-
-        # 五、输出分组排水段落及必要参数
-        # 5.1输出分组边沟、排水沟段落及必要参数（['起点', '止点', '长度', '左右侧', '边坡类型', '坡高max', '坡高min']）
-        regx = r'(.+)(?=\.\w+)'
-        prjfilename = re.findall(regx, slopefilepath_list[-1])
-        slopefilename = f'{prjfilename[0]}{prjname}drainagedata.txt'
-        slopefilepath_list[-1] = slopefilename
-        slopefilepath = '\\'.join(slopefilepath_list)
-        road.outputDrainRange(prjname, prjpath, slopefilepath)
+        # # 五、输出分组排水段落及必要参数
+        # # 5.1输出分组边沟、排水沟段落及必要参数（['起点', '止点', '长度', '左右侧', '边坡类型', '坡高max', '坡高min']）
+        # regx = r'(.+)(?=\.\w+)'
+        # prjfilename = re.findall(regx, slopefilepath_list[-1])
+        # slopefilename = f'{prjfilename[0]}{prjname}drainagedata.txt'
+        # slopefilepath_list[-1] = slopefilename
+        # slopefilepath = '\\'.join(slopefilepath_list)
+        # road.outputDrainRange(prjname, prjpath, slopefilepath)
 
         # 5.2填方、挖方平台截水沟（['起点', '止点', '长度', '左右侧', '位于边沟左右侧', '第i级', 'P坡度', 'P宽度max', 'P宽度min']）
+        with mysql.UsingMysql(log_time=False, db=prjname) as um:
+            um.cursor.execute(f'drop table if exists {roadglobal.tableName_of_platformDrainInGroup}')
         regx = r'(.+)(?=\.\w+)'
         prjfilename = re.findall(regx, slopefilepath_list[-1])
         slopefilename = f'{prjfilename[0]}{prjname}platformdrainagedata.txt'

@@ -10,6 +10,33 @@ import copy
 import roadglobal
 
 
+def insert_dic_data_to_table(prjname, tableName, pama_dic):
+    '''
+    :param prjname: 数据库名称
+    :param pama_dic: 需要插入的数据，需要是字典类型
+    :param tableName:数据表名称
+    :return:将pama_dic中数据插入数据库prjname中的数据表tableName
+    '''
+    with mysql.UsingMysql(log_time=False, db=prjname) as um:
+        if not road.whether_table_in_database(prjname, tableName):
+            # um.cursor.execute(f'drop table if exists {tableName}')
+            sql = f"""CREATE TABLE IF NOT EXISTS `{tableName}` (
+                `id` int(11) NOT NULL AUTO_INCREMENT,
+                PRIMARY KEY (`id`)
+                ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=0"""
+            um.cursor.execute(sql)
+            dicKeys = list(pama_dic.keys())
+            print(f'dickeys:{dicKeys}')
+            for dicElement in dicKeys:
+                sql = f'alter table {tableName} add COLUMN {dicElement} VARCHAR(50)'
+                um.cursor.execute(sql)
+        dicValues = list(pama_dic.values())
+        dicValues.insert(0, 0)
+        print(f'dicValues:{dicValues}')
+        sql = f"insert into {tableName} values {tuple(dicValues)}"
+        um.cursor.execute(sql)
+
+
 def outputPlatformdrainRange(prjname, prjpath, slopefilepath):
     '''
     功能:输出分组平台截水沟段落及必要参数
@@ -21,7 +48,7 @@ def outputPlatformdrainRange(prjname, prjpath, slopefilepath):
     outputslopefile = open(slopefilepath, 'w')
 
     fieldList = ['左右侧', '位于边沟左右侧', '第i级', 'P坡度']  # 将fieldList中字段（必须与sql结果中字段对应）在结果中列出，可扩展[字段1，字段2]
-    fieldMax = ['P宽度']  # 寻找fieldMax中字段的最大值（必须与sql结果中字段对应）在结果中列出，可扩展[字段1，字段2]
+    fieldMax = ['最大级数', 'P宽度']  # 寻找fieldMax中字段的最大值（必须与sql结果中字段对应）在结果中列出，可扩展[字段1，字段2]
     fieldMin = ['P宽度']  # 寻找fieldMin中字段的最小值（必须与sql结果中字段对应）在结果中列出，可扩展[字段1，字段2]
     fieldSum = []
     field_list = [fieldMax, fieldMin, fieldSum, fieldList]
@@ -32,7 +59,7 @@ def outputPlatformdrainRange(prjname, prjpath, slopefilepath):
             for slopelevel in range(1, roadglobal.slopelevel_max):
                 sql = f'''
                         SELECT 
-                            chainage.id id_chainage,slope.chainage,slope.`左右侧`,slope.坡高,slope.`第i级`,slope.`P宽度`,slope.`P坡度`,slope.`位于边沟左右侧`
+                            chainage.id id_chainage,slope.chainage,slope.`左右侧`,slope.坡高,slope.`第i级`,slope.`P宽度`,slope.`P坡度`,slope.`位于边沟左右侧`,slope.`最大级数`
                         FROM 
                             slope,chainage
                         WHERE chainage.chainage=slope.chainage
@@ -56,6 +83,7 @@ def outputPlatformdrainRange(prjname, prjpath, slopefilepath):
                 except:
                     pass
                 for temp in slopedata_res:
+                    insert_dic_data_to_table(prjname, roadglobal.tableName_of_platformDrainInGroup, temp)
                     outputslopefile.write(str(list(temp.values())))
                     outputslopefile.write('\n')
                     print(temp.values())
@@ -107,12 +135,14 @@ def outputSlopeRange(prjname, prjpath, slopefilepath):
                     #             '(((S宽度)**2+(S高度)**2)**0.5+((S宽度_last)**2+(S高度_last)**2)**0.5)/2*lenOfchainage']
                     # field_list = [fieldMax, fieldMin, fieldSum, fieldList]
                     slopedata_res = road.groupByContinuousChainageAndSum(prjname, sql, prjpath, field_list)
+                    print(f'outputSlopeRange({prjname}, {prjpath}, {slopefilepath}),slopedata_res:{slopedata_res}')
                     try:
                         outputslopefile.write(str(list(slopedata_res[0].keys())))
                         outputslopefile.write('\n')
                     except:
                         pass
                     for temp in slopedata_res:
+                        insert_dic_data_to_table(prjname, roadglobal.tableName_of_slopeInGroup, temp)
                         outputslopefile.write(str(list(temp.values())))
                         outputslopefile.write('\n')
                         print(temp.values())
@@ -491,6 +521,19 @@ def switchNoBreakToBreakChainage(chainage,prjpath):
                 return chainage
     else:
         return ''
+
+
+def update_chainageNoBreakChain_tableChainage(prjname, prjpath):
+    # prjname = 'e'
+    # prjpath = r'D:\新建文件夹\E\e.prj'
+    with mysql.UsingMysql(log_time=True, db=prjname) as um:
+        um.cursor.execute("select * from chainage")
+        data_dic_list = um.cursor.fetchall()
+        for data_dic in data_dic_list:
+            chainage = data_dic['chainage']
+            chainage_noBreakChain = road.switchBreakChainageToNoBreak(chainage, prjpath)
+            update = um.cursor.execute(f"update chainage set chainage_noBreakChain={chainage_noBreakChain} where chainage='{chainage}'")
+
 def insertDataToTableDrainageDitchFrom3dr(pathOf3dr,chainage,prjname):
     #功能：将3dr中桩号为chainage边沟/排水沟信息插入到DrainageDitch表中
     # road.getCrossSectionOf3dr得到3dr中桩号chainagea横断面数据
@@ -1029,15 +1072,16 @@ def setupChainageTable(prjname,prjpath):
         cursor = conn.cursor()
         conn.select_db(prjname)
         sql='insert into chainage values(%s,%s,%s,%s)'
-        i=1
+        i = 1
         # 3 装3dr中的桩号，存入数据表key中
         for key in keyslist:
-            insert = cursor.execute(sql,(i,i-1,key,0))
-            i=i+1
+            insert = cursor.execute(sql, (i, i-1, key, 0))
+            i = i+1
         cursor.close()
         conn.commit()
         conn.close()
         print('chainage数据导入成功')
+    road.update_chainageNoBreakChain_tableChainage(prjname, prjpath)
 def creatMysqlSlopeProtecTypeTable(databaseName):
     '''
     功能：在databaseName数据库中新建边坡防护类型表settheprotectiongtypeofslope
@@ -1174,7 +1218,7 @@ def creatMysqlSlopeTable(databaseName):
     print('slope表创建成功V2.0')
 def creatMysqlChainageTable(databaseName):
     #在databaseName数据库中新建chainage表、typeofslopeprot表
-    prjname=databaseName
+    prjname = databaseName
     conn = pymysql.connect(user="root", passwd="sunday")
     cursor = conn.cursor()
     cursor.execute(f'CREATE DATABASE IF NOT EXISTS {prjname} DEFAULT CHARSET utf8 COLLATE utf8_general_ci;')
@@ -1184,28 +1228,30 @@ def creatMysqlChainageTable(databaseName):
           `id` int(6) NOT NULL AUTO_INCREMENT,
           `id_last` int(6) ,
           `chainage` varchar(50) NOT NULL,
-          `chainage_noBreakChain` int(50) NOT NULL,
+          `chainage_noBreakChain` float(50) NOT NULL,
           PRIMARY KEY (`id`)
         ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=0"""
     cursor.execute(sql)
-    cursor.execute('DROP TABLE IF EXISTS typeofslopeprot')
-    sql = '''CREATE TABLE IF NOT EXISTS typeofslopeprot(
-        `id` INT(2) NOT NULL AUTO_INCREMENT,
-        `坡度min` FLOAT(10),
-        `坡度max` FLOAT(10), 
-        `坡高min` FLOAT(10),
-        `坡高max` FLOAT(10), 
-        `防护类型` VARCHAR(50),
-        PRIMARY KEY (`id`)
-        )ENGINE=INNODB DEFAULT CHARSET=utf8;'''
-    cursor.execute(sql)
-    insertdatalist = [[1,-10,-1,-4,0,'绿化'],
-                      [2,-10,-1,-20,-4,'拱形骨架护坡']]
-    sql = "INSERT INTO typeofslopeprot VALUES(%s,%s,%s,%s,%s,%s)"
-    cursor.executemany(sql, insertdatalist)
+    # cursor.execute('DROP TABLE IF EXISTS typeofslopeprot')
+    # sql = '''CREATE TABLE IF NOT EXISTS typeofslopeprot(
+    #     `id` INT(2) NOT NULL AUTO_INCREMENT,
+    #     `坡度min` FLOAT(10),
+    #     `坡度max` FLOAT(10),
+    #     `坡高min` FLOAT(10),
+    #     `坡高max` FLOAT(10),
+    #     `防护类型` VARCHAR(50),
+    #     PRIMARY KEY (`id`)
+    #     )ENGINE=INNODB DEFAULT CHARSET=utf8;'''
+    # cursor.execute(sql)
+    # insertdatalist = [[1,-10,-1,-4,0,'绿化'],
+    #                   [2,-10,-1,-20,-4,'拱形骨架护坡']]
+    # sql = "INSERT INTO typeofslopeprot VALUES(%s,%s,%s,%s,%s,%s)"
+    # cursor.executemany(sql, insertdatalist)
     cursor.close()
     conn.commit()
     conn.close()
+
+
 def creatMysqlDrainageDitchTable(databaseName):
     #在databaseName数据库中新建drainageDitch表
     # chainage    左右侧 3dr中起始位置     线段个数   宽度1    高度1  坡度1  宽度2    高度2  坡度2...
@@ -1326,3 +1372,19 @@ def gui_filenotfine(path):
                       padx=10)  # 限制 文本的 位置 , padx 是 x轴的意思 .
     textLabel.pack(side=LEFT)  # 致命 textlabel 在初识框 中的位置
     mainloop()
+
+
+def whether_table_in_database(database_name, table_name):
+    with mysql.UsingMysql(log_time=False, db=database_name) as um:
+        sql = "show tables;"
+        um.cursor.execute(sql)
+        tablesName_dic = um.cursor.fetchall()
+        tableNames_list = re.findall('(\'.*?\')', str(tablesName_dic).lower())
+        tableNames = [re.sub("'", '', each) for each in tableNames_list]
+        # print(tablesName_dic)
+        # print(tableNames_list)
+        # print(tableNames)
+        if table_name.lower() in tableNames:
+            return True
+        else:
+            return False

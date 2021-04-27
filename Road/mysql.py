@@ -13,7 +13,8 @@
 """
 import pymysql
 from timeit import default_timer
-
+from tkinter import *
+import tkinter.messagebox
 
 host = 'localhost'
 port = 3306
@@ -24,8 +25,13 @@ password = 'sunday'
 
 # ---- 用pymysql 操作数据库
 def get_connection(db):
-    conn = pymysql.connect(host=host, port=port, db=db, user=user, password=password)
-    return conn
+    try:
+        conn = pymysql.connect(host=host, port=port, db=db, user=user, password=password)
+        return conn
+    except:
+        tkinter.messagebox.showinfo('警告', f'{db}数据库连接失败，请检查')
+        sys.exit()
+
 
 
 # ---- 使用 with 的方式来优化代码
