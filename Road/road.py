@@ -1043,6 +1043,70 @@ def getChainageFromChainagetable(db,chainage,breakchain=False):
                 regx = f'(?<!\w)({chainage}0*)(?!\w)'
             res = re.findall(regx, chainageValuesInTable_list_join, re.MULTILINE)
             return res
+
+
+def get_rapid_gutter_parameter(chainage, targetTable, database_name, prjpath, *conditions, isBreakchainage = True):
+    '''
+    功能： 在数据表chainage中查找与桩号chainage前后相邻的桩号(chainage_last,chainage_next)，前返回相邻桩号在targetTable表中的数据
+    :param chainage:要查找的桩号
+    :param targetTable:查找的数据表
+    :param database_name:查找的数据库
+    :param prjpath:prj项目文件路径
+    :param conditions:筛选条件，例，1,2
+    :param isBreakchainage:给定的chainage桩号中是否含断链
+    :return:与桩号chainage前后相邻的桩号在targetTable表中的数据
+    例:temp = get_rapid_gutter_parameter(chainage, targetTable, database_name, prjpath, 1, 2, isBreakchainage=True)
+        例中1，2为conditions参数，第一位表示targetTable中左右侧的值，第二位表示targetTable中位于边沟左右侧的值
+        返回：
+        [
+        [chainage_last{字段：值,...}]
+        [chainage_next{字段：值,...}]
+        ]
+    '''
+    res = []
+    if isBreakchainage:
+        chainage_noBreakchainage = road.switchBreakChainageToNoBreak(chainage, prjpath)
+    else:
+        chainage_noBreakchainage = chainage
+
+    with mysql.UsingMysql(log_time=False, db=database_name) as um:
+        sql = f'''select c.*, h.chainage chainage_last, h.chainage_noBreakChain noBreakchain_last
+            from chainage c, chainage h 
+            WHERE c.id_last=h.id
+            and {chainage_noBreakchainage} <= c.chainage_noBreakChain
+            and {chainage_noBreakchainage} >= h.chainage_noBreakChain;
+            '''
+        um.cursor.execute(sql)
+        data_dic = um.cursor.fetchone()
+        print(f'data_dic_list:{data_dic}')
+        if data_dic is None:
+            return ''
+        else:
+            for chainage_for in [data_dic['chainage_last'], data_dic['chainage']]:
+                sql = f'''select *
+                    from {targetTable}
+                    where chainage = {chainage_for}
+                    '''
+                for i in [0, 1]:
+                    try:
+                        conditions[i]
+                    except:
+                        pass
+                    else:
+                        if i == 0:
+                            sql += f'''and {targetTable}.左右侧 = {conditions[i]}'''
+                        else:
+                            sql += f'''
+                                    and {targetTable}.位于边沟左右侧 = {conditions[i]}'''
+                print(sql)
+                um.cursor.execute(sql)
+                data_dic_list = um.cursor.fetchall()
+                # res.extend(data_dic_list)
+                res.append(data_dic_list)
+                print(f'data_dic_list:{data_dic_list}')
+            return res
+
+
 def setupChainageTable(prjname,prjpath):
     #功能：建立chainage表
     #步骤：
