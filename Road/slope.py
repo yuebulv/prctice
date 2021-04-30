@@ -147,7 +147,10 @@ if __name__ == "__main__":
         # 5.3.2 B型急流槽(填挖交界截水沟）
         # 根据挖方段落排水沟坡比判断
         # 5.3.3 C型急流槽(挖方平台截水沟到边沟）
-        # 根据挖方平台截水沟段落、截水沟间距、纵坡方向判断
+        slopefilename = f'{prjfilename[0]}{prjname}rapidgutters.txt'
+        slopefilepath_list[-1] = slopefilename
+        rapid_gutter_saved_path = '\\'.join(slopefilepath_list)
+        road.set_slope_rapid_gutter(prjname, prjpath, rapid_gutter_saved_path)
 
         # 5.4沉砂池（['起点', '止点', '长度', '左右侧', '边坡类型', '坡高max', '坡高min', '边坡坡度', '平台宽度']）
 

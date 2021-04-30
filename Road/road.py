@@ -43,6 +43,7 @@ def outputPlatformdrainRange(prjname, prjpath, slopefilepath):
     :param slopefilepath:结果保存路径
     :return:['起点', '止点', '长度', '左右侧', '位于边沟左右侧', '第i级', 'P坡度', 'P宽度max', 'P宽度min']
     结果存入slopefilepath文件中
+    存在问题：1）填方平台截水沟，最下面一级不需要设置，需要删除
     '''
     print(slopefilepath)
     outputslopefile = open(slopefilepath, 'w')
@@ -83,7 +84,7 @@ def outputPlatformdrainRange(prjname, prjpath, slopefilepath):
                 except:
                     pass
                 for temp in slopedata_res:
-                    insert_dic_data_to_table(prjname, roadglobal.tableName_of_platformDrainInGroup, temp)
+                    road.insert_dic_data_to_table(prjname, roadglobal.tableName_of_platformDrainInGroup, temp)
                     outputslopefile.write(str(list(temp.values())))
                     outputslopefile.write('\n')
                     print(temp.values())
@@ -695,6 +696,142 @@ def insertDataFrom3drToTableSlope(prjpath, chainage, prjname):
     conn.commit()
     conn.close()
     print("边坡信息已存入drainageditch表")
+
+
+def insert_slope_value_betweent_chainageAB(rapidGutterChainage_noBreak, nearbyChainageData, prjpath):
+    '''
+    功能：根据相邻桩号A、C及其边坡信息，插值得到桩号B边坡信息
+    # 例：断面A边坡有[1,2]级，断面C[1,2,3,4]；
+    # 那中间所求断面B，第1级为AB共有级：平均值法；
+    # 第[3,4]级为断面C独有：分级高度，坡度，平台宽度、坡度与C断面一致，
+    # 第[2]级为过渡级，边坡高度=总高度-第[1,3,4]级，边坡坡度采用平均值法
+    # [[第1级dic]...[第i级dic]]
+    :param rapidGutterChainage_noBreak:桩号B（不含断链）
+    :param nearbyChainageData:桩号B相邻桩号A/C及其边坡信息
+    :param prjpath:prj文件路径
+    :return:[[第1级dic]...[第i级dic]]
+    '''
+
+    if nearbyChainageData == '':
+        return ''
+    # 给nearbyChainageData排序
+    nearbyChainageData_copy = copy.deepcopy(nearbyChainageData)
+    for i in range(0, len(nearbyChainageData_copy)):
+        for j in range(0, len(nearbyChainageData_copy[i])):
+            temp = nearbyChainageData_copy[i][j]['第i级']
+            try:
+                nearbyChainageData[i][temp] = copy.deepcopy(nearbyChainageData_copy[i][j])
+            except IndexError:
+                nearbyChainageData[i].append(nearbyChainageData_copy[i][j])
+        nearbyChainageData[i] = nearbyChainageData[i][1:]
+    # for i in range(0, len(nearbyChainageData)):
+    #     for j in range(0, len(nearbyChainageData[i])):
+    #         print(f'nearbyChainageData[i][j]:{nearbyChainageData[i][j]}')
+
+    res = []
+    data_dic = []
+    height_B_sum = 0
+    maxLevel_1 = nearbyChainageData[0][0]['最大级数']
+    maxLevel_2 = nearbyChainageData[1][0]['最大级数']
+    if maxLevel_1 < maxLevel_2:  # 用级数来区分主从断面
+        index_list = [0, 1]
+    elif maxLevel_1 > maxLevel_2:
+        index_list = [1, 0]
+    else:  # 级数相等时，用坡度来区分主从断面
+        maxLevel_1 = nearbyChainageData[0][0]['坡高']
+        maxLevel_2 = nearbyChainageData[1][0]['坡高']
+        if abs(maxLevel_1) <= abs(maxLevel_2):
+            index_list = [0, 1]
+        else:
+            index_list = [1, 0]
+
+    rapidGutter_dic = copy.deepcopy(nearbyChainageData[0][0])
+    rapidGutterChainage_Break = road.switchNoBreakToBreakChainage(rapidGutterChainage_noBreak, prjpath)
+    rapidGutter_dic['chainage'] = rapidGutterChainage_Break
+    # 更新rapidGutter_dic值
+    temp1 = nearbyChainageData[index_list[0]][0]['坡高']
+    temp1_chainage = nearbyChainageData[index_list[0]][0]['chainage']
+    temp1_chainage = road.switchBreakChainageToNoBreak(temp1_chainage, prjpath)
+    temp2 = nearbyChainageData[index_list[1]][0]['坡高']
+    temp2_chainage = nearbyChainageData[index_list[1]][0]['chainage']
+    temp2_chainage = road.switchBreakChainageToNoBreak(temp2_chainage, prjpath)
+
+    rapidGutter_dic['坡高'] = round(abs((temp1 - temp2) / (temp2_chainage - temp1_chainage) *
+                                      (rapidGutterChainage_noBreak - temp1_chainage)) + abs(temp1), 3)
+    if temp1 < 0 or temp2 < 0:
+        rapidGutter_dic['坡高'] = -rapidGutter_dic['坡高']
+    # print(f"rapidGutter_dic['坡高']:{rapidGutter_dic['坡高']}")
+    # 那中间所求断面B，第1级为AB共有级：平均值法；
+    coefficient_1 = abs((rapidGutterChainage_noBreak-temp1_chainage)/(temp2_chainage - temp1_chainage))
+    coefficient_2 = abs((rapidGutterChainage_noBreak - temp2_chainage) / (temp2_chainage - temp1_chainage))
+    for i in range(1, nearbyChainageData[index_list[0]][0]['最大级数']):
+        rapidGutter_dic = copy.deepcopy(rapidGutter_dic)  # 如无此句，后修改rapidGutter_dic值会影响res中rapidGutter_dic结果
+        rapidGutter_dic['第i级'] = i
+        rapidGutter_dic['S高度'] = round(nearbyChainageData[index_list[0]][i-1]['S高度']*coefficient_1 + nearbyChainageData[index_list[1]][i-1]['S高度']*coefficient_2, 3)
+        rapidGutter_dic['S坡度'] = round(nearbyChainageData[index_list[0]][i-1]['S坡度']*coefficient_1 + nearbyChainageData[index_list[1]][i-1]['S坡度']*coefficient_2, 3)
+        rapidGutter_dic['S宽度'] = round(rapidGutter_dic['S高度']*rapidGutter_dic['S坡度'], 3)
+        rapidGutter_dic['P高度'] = round(nearbyChainageData[index_list[0]][i-1]['P高度']*coefficient_1 + nearbyChainageData[index_list[1]][i-1]['P高度']*coefficient_2, 3)
+        rapidGutter_dic['P坡度'] = round(nearbyChainageData[index_list[0]][i-1]['P坡度']*coefficient_1 + nearbyChainageData[index_list[1]][i-1]['P坡度']*coefficient_2, 3)
+        rapidGutter_dic['P宽度'] = round(nearbyChainageData[index_list[0]][i-1]['P宽度']*coefficient_1 + nearbyChainageData[index_list[1]][i-1]['P宽度']*coefficient_2, 3)
+        res.append(rapidGutter_dic)
+        print(f'rapidGutter_dic1:{rapidGutter_dic}')
+        # print(f'res1:{res}')
+        height_B_sum += rapidGutter_dic['S高度']
+    # 第[3,4]级为断面C独有：分级高度，坡度，平台宽度、坡度与C断面一致，
+    cot_a = (nearbyChainageData[index_list[1]][0]['坡高']-nearbyChainageData[index_list[0]][0]['坡高'])/(temp2_chainage - temp1_chainage)
+    l_BC = temp2_chainage-rapidGutterChainage_noBreak
+    height_remain = cot_a*l_BC
+    for i in range(nearbyChainageData[index_list[0]][0]['最大级数']+1, nearbyChainageData[index_list[1]][0]['最大级数']+1):
+        height_sum = 0
+        for j in range(i, nearbyChainageData[index_list[1]][0]['最大级数'] + 1):
+            height_sum += nearbyChainageData[index_list[1]][j-1]['S高度']
+        if abs(height_sum)-abs(height_remain) <= 0:  # B断面止点在过段级
+            break
+        else:
+            rapidGutter_dic = copy.deepcopy(rapidGutter_dic)
+            rapidGutter_dic['第i级'] = i
+            rapidGutter_dic['S坡度'] = round(nearbyChainageData[index_list[1]][i-1]['S坡度'], 3)
+            rapidGutter_dic['P高度'] = round(nearbyChainageData[index_list[1]][i-1]['P高度'], 3)
+            rapidGutter_dic['P坡度'] = round(nearbyChainageData[index_list[1]][i-1]['P坡度'], 3)
+            rapidGutter_dic['P宽度'] = round(nearbyChainageData[index_list[1]][i-1]['P宽度'], 3)
+            if abs(height_sum-height_remain) <= abs(nearbyChainageData[index_list[1]][i-1]['S高度']):  # 最后一级
+                rapidGutter_dic['S高度'] = round(height_sum-height_remain, 3)
+                rapidGutter_dic['S宽度'] = round(rapidGutter_dic['S高度'] * rapidGutter_dic['S坡度'], 3)
+                res.append(rapidGutter_dic)
+                print(f'rapidGutter_dic2:{rapidGutter_dic}')
+                height_B_sum += rapidGutter_dic['S高度']
+                break
+            else:
+                rapidGutter_dic['S高度'] = round(nearbyChainageData[index_list[1]][i-1]['S高度'], 3)
+                res.append(rapidGutter_dic)
+                print(f'rapidGutter_dic3:{rapidGutter_dic}')
+                height_B_sum += rapidGutter_dic['S高度']
+
+    # 第[2]级为过渡级，边坡高度=总高度-第[1,3,4]级，边坡坡度采用平均值法
+    rapidGutter_dic = copy.deepcopy(rapidGutter_dic)
+    i = nearbyChainageData[index_list[0]][0]['最大级数']
+    rapidGutter_dic['第i级'] = i
+    i = i-1
+    rapidGutter_dic['S高度'] = round(rapidGutter_dic['坡高']-height_B_sum, 3)
+    rapidGutter_dic['S坡度'] = round((nearbyChainageData[0][i]['S坡度'] + nearbyChainageData[1][i]['S坡度']) / 2, 3)
+    rapidGutter_dic['S宽度'] = round(rapidGutter_dic['S高度'] * rapidGutter_dic['S坡度'], 3)
+    if abs(rapidGutter_dic['S高度'])+0.05 < abs(nearbyChainageData[index_list[1]][i]['S高度']):
+        rapidGutter_dic['P高度'] = round(nearbyChainageData[index_list[0]][i]['P高度'], 3)
+        rapidGutter_dic['P坡度'] = round(nearbyChainageData[index_list[0]][i]['P坡度'], 3)
+        rapidGutter_dic['P宽度'] = round(nearbyChainageData[index_list[0]][i]['P宽度'], 3)
+    else:
+        rapidGutter_dic['P高度'] = round(nearbyChainageData[index_list[1]][i]['P高度'], 3)
+        rapidGutter_dic['P坡度'] = round(nearbyChainageData[index_list[1]][i]['P坡度'], 3)
+        rapidGutter_dic['P宽度'] = round(nearbyChainageData[index_list[1]][i]['P宽度'], 3)
+    res.insert(i, rapidGutter_dic)
+    print(f'rapidGutter_dic4:{rapidGutter_dic}')
+    # 修改最大级数
+    maxSlopeLevel = len(res)
+    for i in range(0, maxSlopeLevel):
+        res[i]['最大级数'] = maxSlopeLevel
+    print('insert_slope_value_betweent_chainageAB完成')
+    return res
+
 def findBridgeChainageFromABChainage(chainageA, chainageB, prjpath, lOrRSideOfsubgrade=1):
     # 功能：已知两相邻桩号A/B，查找A/B之间是否存在桥隧起止点，如有返回桥隧起止桩号，否则返回中间桩号（A+B）/2
     # A/B为含断链桩号
@@ -1105,6 +1242,165 @@ def get_rapid_gutter_parameter(chainage, targetTable, database_name, prjpath, *c
                 res.append(data_dic_list)
                 print(f'data_dic_list:{data_dic_list}')
             return res
+
+
+def set_slope_rapid_gutter(database_name, prjpath, rapid_gutter_saved_path):
+    # 存在问题
+    # 填方
+    # 有中央分隔带才需要设填方急流槽
+    # 最高级为1级边坡也需要设填方急流槽
+    # 填方左右侧，只需单侧设急流机槽
+    '''
+    功能：根据挖方平台截水沟段落、急流槽间距，输出 C型急流槽(挖方平台截水沟到边沟）桩号等数据
+    :param database_name:
+    :param prjpath:
+    :param rapid_gutter_saved_path:结果保存路径
+    :return:
+    # 方法：1）得到挖方段落；2）以挖方段落最高一级中间为准，按给定间距向两端设置急流槽；3）判断急流槽坡度，高度；4）输出急流槽桩号，第i级，高度，坡度，长度，C型急流槽
+    # 不需考虑平台截水沟纵坡，两端截水沟通过调整沟底纵坡汇入急流槽
+    # 此方案对于纵坡较大，同一段有多处山峰时不适用，后续需要改进。
+    '''
+    slopefilepath = rapid_gutter_saved_path
+    try:
+        outputslopefile = open(slopefilepath, 'w')
+    except:
+        msgbox = tkinter.messagebox.showerror('set_slope_rapid_gutter警告', f'{slopefilepath}文件不存在，请检查', )
+        return ''
+    SlopeLevel_setInterceptingDitch = [roadglobal.embankmentSlopeLevel_setInterceptingDitch,
+                                       roadglobal.cuttingSlopeLevel_setInterceptingDitch]
+    rapidGutter_spacing = [roadglobal.embankment_rapidGutter_spacing, roadglobal.cutting_rapidGutter_spacing]
+    with mysql.UsingMysql(log_time=True, db=database_name) as um:
+        for lorR_drain in [1, 2]:
+            for lorR_slope_drainage in [2]:
+                # 5.3.3.1 得到挖方最高一级段落；
+                rapidGutterChainages_list = []
+                sql = f'''
+                    SELECT 
+                        *
+                    FROM 
+                        platformdrainingroup
+                    WHERE platformdrainingroup.`左右侧`={lorR_drain}
+                    AND 
+                        platformdrainingroup.`位于边沟左右侧`={lorR_slope_drainage}
+                    AND 
+                        platformdrainingroup.第i级=1
+                    AND 
+                        platformdrainingroup.最大级数max>1
+                    ORDER BY 
+                       id ASC;'''
+                um.cursor.execute(sql)
+                data_slopeLevel1_dic_list = um.cursor.fetchall()  # 第1级段落
+                print(f'data_slopeLevel1_dic_list:{data_slopeLevel1_dic_list}')
+                sql = f'''
+                    SELECT 
+                        *
+                    FROM 
+                        platformdrainingroup
+                    WHERE platformdrainingroup.`左右侧`={lorR_drain}
+                    AND 
+                        platformdrainingroup.`位于边沟左右侧`={lorR_slope_drainage}
+                    AND 
+                        platformdrainingroup.第i级=最大级数max-1 
+                    ORDER BY 
+                       id ASC;'''
+                um.cursor.execute(sql)
+                data_dic_list = um.cursor.fetchall()  # 最大级段落
+                print(data_dic_list)
+                for i in range(0, len(data_dic_list)):
+                    startChainage = data_dic_list[i]['起点']
+                    endChainage = data_dic_list[i]['止点']
+                    startChainage_noBreak = road.switchBreakChainageToNoBreak(startChainage, prjpath)
+                    endChainage_noBreak = road.switchBreakChainageToNoBreak(endChainage, prjpath)
+                    slopeLevel = int(data_dic_list[i]['第i级'])
+                    rapidGutterChainage = int((startChainage_noBreak + endChainage_noBreak)/2)
+                    print(f'基准rapidGutterChainage:{rapidGutterChainage}')
+                    # 5.3.3.2）以挖方段落最高一级中间为准，按给定间距向两端设置急流槽；
+                    for j in range(0, len(data_slopeLevel1_dic_list)):
+                        startChainage_slopeLevel1 = data_slopeLevel1_dic_list[j]['起点']
+                        endChainage_slopeLevel1 = data_slopeLevel1_dic_list[j]['止点']
+                        startChainage_noBreak_slopeLevel1 = road.switchBreakChainageToNoBreak(startChainage_slopeLevel1, prjpath)
+                        startChainage_noBreak_slopeLevel1 = int(startChainage_noBreak_slopeLevel1)
+                        endChainage_noBreak_slopeLevel1 = road.switchBreakChainageToNoBreak(endChainage_slopeLevel1, prjpath)
+                        endChainage_noBreak_slopeLevel1 = int(endChainage_noBreak_slopeLevel1)
+                        if startChainage_noBreak_slopeLevel1 <= startChainage_noBreak <= endChainage_noBreak_slopeLevel1:
+                            print(f'startChainage_noBreak_slopeLevel1:{startChainage_noBreak_slopeLevel1}')
+                            print(f'endChainage_noBreak_slopeLevel1:{endChainage_noBreak_slopeLevel1}')
+                            rapidGutterChainage_list = sorted(list(range(rapidGutterChainage, startChainage_noBreak_slopeLevel1,
+                                                                         -rapidGutter_spacing[lorR_slope_drainage-1])))
+                            temptList = list(range(rapidGutterChainage, endChainage_noBreak_slopeLevel1, rapidGutter_spacing[lorR_slope_drainage-1]))
+                            # 得到了急流槽桩号
+                            rapidGutterChainage_list.extend(temptList[1:])
+                            rapidGutterChainages_list.extend(rapidGutterChainage_list)
+                            print(f'rapidGutterChainages_list:{rapidGutterChainages_list}')
+                            break
+
+                # 5.3.3.3）判断急流槽坡度，高度；
+                rapidGutters_dic_list = []
+                # for rapidGutterChainage_noBreak in [315]:
+                for rapidGutterChainage_noBreak in rapidGutterChainages_list:
+                    nearbyChainageData = road.get_rapid_gutter_parameter(rapidGutterChainage_noBreak, 'slope',
+                                                                         database_name, prjpath, lorR_drain,
+                                                                         lorR_slope_drainage, isBreakchainage=False)
+                    print(f'nearbyChainageData:{nearbyChainageData}')
+                    if len(nearbyChainageData[0]) == 0 and len(nearbyChainageData[1]) == 0:
+                        continue
+                    elif len(nearbyChainageData[0]) == 0:
+                        rapidGutter_dic_list = nearbyChainageData[1]
+                    elif len(nearbyChainageData[1]) == 0:
+                        rapidGutter_dic_list = nearbyChainageData[0]
+                    else:
+                        rapidGutter_dic_list = road.insert_slope_value_betweent_chainageAB(rapidGutterChainage_noBreak, nearbyChainageData, prjpath)
+                        print(f'rapidGutter_dic_list:{rapidGutter_dic_list}')
+                    rapidGutters_dic_list.append(rapidGutter_dic_list)
+                # 5.3.3.4）急流槽桩号及数据修正
+                # 挖方段，去除高于截水沟边坡数据
+                if lorR_slope_drainage == 2:
+                    m_dic_levelsList_chainAgesList = 0
+                    while m_dic_levelsList_chainAgesList < len(rapidGutters_dic_list):
+                        n_dic_levelsList = 0
+                        while n_dic_levelsList < len(rapidGutters_dic_list[m_dic_levelsList_chainAgesList]):
+                            if rapidGutters_dic_list[m_dic_levelsList_chainAgesList][n_dic_levelsList]['第i级'] == \
+                                    rapidGutters_dic_list[m_dic_levelsList_chainAgesList][n_dic_levelsList]['最大级数']:
+                                del rapidGutters_dic_list[m_dic_levelsList_chainAgesList][n_dic_levelsList]
+                                n_dic_levelsList = n_dic_levelsList - 1
+                                n_dic_levelsList += 1
+                                continue
+                            status = False
+                            for i in range(rapidGutters_dic_list[m_dic_levelsList_chainAgesList][n_dic_levelsList]['第i级'],
+                                           rapidGutters_dic_list[m_dic_levelsList_chainAgesList][n_dic_levelsList]['最大级数']):
+                                if i in roadglobal.cuttingSlopeLevel_setInterceptingDitch:
+                                    status = True
+                                    break
+                            if not status:
+                                del rapidGutters_dic_list[m_dic_levelsList_chainAgesList][n_dic_levelsList]
+                                n_dic_levelsList = n_dic_levelsList - 1
+                            n_dic_levelsList += 1
+                        if len(rapidGutters_dic_list[m_dic_levelsList_chainAgesList]) == 0:
+                            del rapidGutters_dic_list[m_dic_levelsList_chainAgesList]
+                            m_dic_levelsList_chainAgesList -= 1
+                        m_dic_levelsList_chainAgesList += 1
+
+                # 5.3.3.5）输出急流槽桩号，第i级，高度，坡度，长度，C型急流槽
+                print('rapidGutters_dic_list:')
+                for temp in rapidGutters_dic_list:
+                    print(temp)
+                try:
+                    del rapidGutters_dic_list[0][0]['id']
+                    outputslopefile.write(str(list(rapidGutters_dic_list[0][0].keys())))
+                    outputslopefile.write('\n')
+                except:
+                    print(f'set_slope_rapid_gutter-outputslopefile:文件写入错误')
+                for temp1 in rapidGutters_dic_list:
+                    for temp in temp1:
+                        try:
+                            del temp['id']
+                        except KeyError:
+                            pass
+                        road.insert_dic_data_to_table(database_name, roadglobal.tableName_of_rapidGutters, temp)
+                        outputslopefile.write(str(list(temp.values())))
+                        outputslopefile.write('\n')
+    outputslopefile.close()
+    print(f'{roadglobal.tableName_of_rapidGutters}表，完成')
 
 
 def setupChainageTable(prjname,prjpath):
