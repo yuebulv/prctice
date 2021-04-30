@@ -202,6 +202,7 @@ def outputDrainRange(prjname, prjpath, slopefilepath):
             except:
                 pass
             for temp in slopedata_res:
+                insert_dic_data_to_table(prjname, roadglobal.tableName_of_drainageDitchInGroup, temp)
                 outputslopefile.write(str(list(temp.values())))
                 outputslopefile.write('\n')
                 print(temp.values())

@@ -143,9 +143,11 @@ if __name__ == "__main__":
         road.outputPlatformdrainRange(prjname, prjpath, slopefilepath)
 
         # 5.3A/B/C型急流槽（['起点', '止点', '长度', '左右侧', '边坡类型', '坡高max', '坡高min', '边坡坡度', '平台宽度']）
-        # 5.3.1 A型急流槽(填方平横向排水管到排水沟）
+        # 5.3.1 A型急流槽(填方横向排水管到排水沟，排中央分隔带水）
+        # 1)第1级填方边坡段落；2）从中间向两端，按给定间距设置急流本槽；3）超高段急流槽间距不一样；4）归并左右侧急流槽，按间距，归入坡高较大侧；5）输出
         # 5.3.2 B型急流槽(填挖交界截水沟）
-        # 根据挖方段落排水沟坡比判断
+        # 1）填方排水沟段落；2）相邻断面CA/CB，沟心距GLA/GLB，沟底高HA/HB，坡度公式：((CB-CA)^2+(GLA+GLB)^2+(HA-HB)^2)^0.5/(HB-HA)；3）根据坡度判断是否设置急流槽。
+
         # 5.3.3 C型急流槽(挖方平台截水沟到边沟）
         slopefilename = f'{prjfilename[0]}{prjname}rapidgutters.txt'
         slopefilepath_list[-1] = slopefilename
