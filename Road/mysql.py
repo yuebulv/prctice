@@ -84,10 +84,11 @@ class UsingMysql(object):
 
 def check_it():
 
-    with UsingMysql(log_time=True,db='长寿支线') as um:
+    with UsingMysql(log_time=True, db='长寿支线') as um:
         um.cursor.execute("select count(id) as total from chainage")
         data = um.cursor.fetchone()
         print("-- 当前数量: %d " % data['total'])
+
 
 if __name__ == "__main__":
     check_it()

@@ -1,5 +1,6 @@
 #查找纬地项目文件prjpath中X文件路径，例FindXPathFromPrj(prjpath,3dr)
 slopelevel_max = 8 # 默认边坡最大级数
+# 数据表名称
 tableName_of_slopeInGroup = 'slope_In_Group'
 tableName_of_drainageDitchInGroup = 'drainage_Ditch_In_Group'
 tableName_of_platformDrainInGroup = 'platform_Drain_In_Group'
@@ -9,6 +10,8 @@ cutting_rapidGutter_spacing = 40  # 挖方边坡急流槽间距
 embankment_rapidGutter_spacing = 50
 cuttingSlopeLevel_setInterceptingDitch = [2, 4, 6, 8]  #[2, 4, 6, 8]  # [1, 2, 3, 4, 5, 6, 7, 8]  # 边坡截水沟设置于第i级边坡
 embankmentSlopeLevel_setInterceptingDitch = [1, 2, 3, 4, 5, 6, 7, 8]
+tableName_of_rapidGutters_b = 'rapid_gutters_b'  # B型急流槽数据表名称
+rapid_gutter_b_slope_min = 1.5  # B型急流槽（填挖交界）最小坡度
 
 # 纬地tf文件格式
 tfTitle_dic = {'桩号': 1, '挖方面积': 2, '填方面积': 3, '中桩填挖': 4, '路基左宽': 5, '路基右宽': 6, '基缘左高': 7, '基缘右高': 8,

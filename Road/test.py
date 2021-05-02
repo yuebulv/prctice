@@ -90,71 +90,18 @@ class Stats:
 # stats.ui.show()
 # app.exec_()
 
-def set_rapid_gutter_b():
-    # 5.3.2 B型急流槽(填挖交界截水沟）
-    # 1）填方排水沟段落；2）相邻断面CA/CB，沟心距GLA/GLB，沟底高HA/HB，坡度公式：((CB-CA)^2+(GLA+GLB)^2+(HA-HB)^2)^0.5/(HB-HA)；3）根据坡度判断是否设置急流槽。
-    database_name = 'e'
-    prjpath = r'D:\新建文件夹\E\e.prj'
-    rapid_gutter_saved_path = r'D:\新建文件夹\E\rapidgutters_b.txt'
-    lorR_slope_drainage = 1
-    with mysql.UsingMysql(log_time=False, db=database_name) as um:
-        for lorR_drain in [1, 2]:
-            # 1）填方排水沟段落
-            rapidGutterChainages_list = []
-            sql = f'''
-                    SELECT 
-                        *
-                    FROM 
-                        platformdrainingroup
-                    WHERE platformdrainingroup.`左右侧`={lorR_drain}
-                    AND 
-                        platformdrainingroup.`位于边沟左右侧`={lorR_slope_drainage}
-                    AND 
-                        platformdrainingroup.第i级=1
-                    AND 
-                        platformdrainingroup.最大级数max>1
-                    ORDER BY 
-                       id ASC;'''
-            um.cursor.execute(sql)
-            data_slopeLevel1_dic_list = um.cursor.fetchall()  # 第1级段落
-
 
 if __name__ == "__main__":
-    database_name = 'e'
-    prjpath = r'D:\新建文件夹\E\e.prj'
-    rapid_gutter_saved_path = r'D:\新建文件夹\E\rapidgutters.txt'
-    road.set_slope_rapid_gutter(database_name, prjpath, rapid_gutter_saved_path)
+    # database_name = 'e'
+    # prjpath = r'D:\新建文件夹\E\e.prj'
+    # rapid_gutter_saved_path = r'D:\新建文件夹\E\rapidgutters1.txt'
 
-    # temp = {'a':1,'b':2,'c':3}
-    # del temp['A']
-    # print(temp)
+    database_name = '主线右线'
+    prjpath = r'D:\Download\QQ文档\297358842\FileRecv\元蔓纬地设计文件\元蔓纬地设计文件\主线右线\主线右线.prj'
+    rapid_gutter_saved_path = roadglobal.tableName_of_rapidGutters_b
 
-    # sql = f'''
-    #       SELECT
-    #           *
-    #       FROM
-    #           platformdrainingroup
-    #       WHERE platformdrainingroup.`左右侧`={lorR_drain}
-    #       AND
-    #           platformdrainingroup.`位于边沟左右侧`={lorR_slope_drainage}
-    #       AND
-    #           platformdrainingroup.第i级=1
-    #       AND
-    #           platformdrainingroup.最大级数max>1
-    #       ORDER BY
-    #          id ASC;'''
-    #
-    # sql = f'''
-    #       SELECT
-    #           *
-    #       FROM
-    #           platformdrainingroup
-    #       WHERE platformdrainingroup.`左右侧`={lorR_drain}
-    #       AND
-    #           platformdrainingroup.`位于边沟左右侧`={lorR_slope_drainage}
-    #       AND
-    #           platformdrainingroup.第i级=最大级数max-1
-    #       ORDER BY
-    #          id ASC;'''
+
+
+
 
 

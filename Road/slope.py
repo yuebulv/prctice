@@ -75,6 +75,8 @@ import copy
 import glob
 import roadglobal
 # import filedialog
+logName = ''
+logPath = ''
 if __name__ == "__main__":
     root = tk.Tk()
     root.withdraw()
@@ -91,6 +93,10 @@ if __name__ == "__main__":
         prjname = re.findall(regx, slopefilepath_list[-1])[0]
         prjname = prjname.replace('+', '')
         # print(prjname)
+        # 程序运行日志记录地址
+        logName = f'{prjname}_log.txt'
+        slopefilepath_list[-1] = logName
+        logPath = '\\'.join(slopefilepath_list)
 
         # #一、 生成数据表chainage
         # road.setupChainageTable(prjname, prjpath)
@@ -111,7 +117,7 @@ if __name__ == "__main__":
         # for chainage in chainages:
         #     road.insertDataFrom3drToTableSlope(prjpath, chainage, prjname)
         # road.creatMysqlSlopeProtecTypeTable(prjname)
-
+        #
         # # 四、输出分组边坡段落及必要参数
         # # （['起点', '止点', '长度', '左右侧', '第i级', 'S坡度', '位于边沟左右侧', '防护类型', '最大级数max', '坡高max', '坡高min', '坡面面积']）
         # with mysql.UsingMysql(log_time=False, db=prjname) as um:
@@ -132,27 +138,38 @@ if __name__ == "__main__":
         # slopefilepath = '\\'.join(slopefilepath_list)
         # road.outputDrainRange(prjname, prjpath, slopefilepath)
 
-        # 5.2填方、挖方平台截水沟（['起点', '止点', '长度', '左右侧', '位于边沟左右侧', '第i级', 'P坡度', 'P宽度max', 'P宽度min']）
-        with mysql.UsingMysql(log_time=False, db=prjname) as um:
-            um.cursor.execute(f'drop table if exists {roadglobal.tableName_of_platformDrainInGroup}')
-        regx = r'(.+)(?=\.\w+)'
-        prjfilename = re.findall(regx, slopefilepath_list[-1])
-        slopefilename = f'{prjfilename[0]}{prjname}platformdrainagedata.txt'
-        slopefilepath_list[-1] = slopefilename
-        slopefilepath = '\\'.join(slopefilepath_list)
-        road.outputPlatformdrainRange(prjname, prjpath, slopefilepath)
+        # # 5.2填方、挖方平台截水沟（['起点', '止点', '长度', '左右侧', '位于边沟左右侧', '第i级', 'P坡度', 'P宽度max', 'P宽度min']）
+        # with mysql.UsingMysql(log_time=False, db=prjname) as um:
+        #     um.cursor.execute(f'drop table if exists {roadglobal.tableName_of_platformDrainInGroup}')
+        # regx = r'(.+)(?=\.\w+)'
+        # prjfilename = re.findall(regx, slopefilepath_list[-1])
+        # slopefilename = f'{prjfilename[0]}{prjname}platformdrainagedata.txt'
+        # slopefilepath_list[-1] = slopefilename
+        # slopefilepath = '\\'.join(slopefilepath_list)
+        # road.outputPlatformdrainRange(prjname, prjpath, slopefilepath)
 
         # 5.3A/B/C型急流槽（['起点', '止点', '长度', '左右侧', '边坡类型', '坡高max', '坡高min', '边坡坡度', '平台宽度']）
         # 5.3.1 A型急流槽(填方横向排水管到排水沟，排中央分隔带水）
         # 1)第1级填方边坡段落；2）从中间向两端，按给定间距设置急流本槽；3）超高段急流槽间距不一样；4）归并左右侧急流槽，按间距，归入坡高较大侧；5）输出
         # 5.3.2 B型急流槽(填挖交界截水沟）
         # 1）填方排水沟段落；2）相邻断面CA/CB，沟心距GLA/GLB，沟底高HA/HB，坡度公式：((CB-CA)^2+(GLA+GLB)^2+(HA-HB)^2)^0.5/(HB-HA)；3）根据坡度判断是否设置急流槽。
-
-        # 5.3.3 C型急流槽(挖方平台截水沟到边沟）
-        slopefilename = f'{prjfilename[0]}{prjname}rapidgutters.txt'
+        slopefilename = f'{prjname}rapid_gutters_b.txt'
         slopefilepath_list[-1] = slopefilename
         rapid_gutter_saved_path = '\\'.join(slopefilepath_list)
-        road.set_slope_rapid_gutter(prjname, prjpath, rapid_gutter_saved_path)
+        rapid_gutters_b = road.set_rapid_gutter_b(prjname, prjpath, rapid_gutter_saved_path)
+        if len(rapid_gutters_b[1]) > 0:
+            outputErrFile = open(logPath, 'a')
+            for errTxt in rapid_gutters_b[1]:
+                outputErrFile.write(str(errTxt))
+                outputErrFile.write('\n')
+            outputErrFile.close()
+        print(rapid_gutters_b)
+
+        # # 5.3.3 C型急流槽(挖方平台截水沟到边沟）
+        # slopefilename = f'{prjfilename[0]}{prjname}rapidgutters.txt'
+        # slopefilepath_list[-1] = slopefilename
+        # rapid_gutter_saved_path = '\\'.join(slopefilepath_list)
+        # road.set_slope_rapid_gutter(prjname, prjpath, rapid_gutter_saved_path)
 
         # 5.4沉砂池（['起点', '止点', '长度', '左右侧', '边坡类型', '坡高max', '坡高min', '边坡坡度', '平台宽度']）
 
