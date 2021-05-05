@@ -14,6 +14,8 @@ from PySide2.QtUiTools import QUiLoader
 from PySide2.QtCore import QFile
 import tkinter
 import tkinter.messagebox
+from operator import itemgetter
+
 
 class Stats:
     def __init__(self):
@@ -28,6 +30,7 @@ class Stats:
         self.ui.action_openprj.triggered.connect(self.openPrjFile)
         self.ui.pushButton_quit.clicked.connect(self.quitSoftware)
         # self.ui.button.clicked.connect(self.handleCalc)
+
     def openPrjFile(self):
         root = tk.Tk()
         root.withdraw()
@@ -46,7 +49,7 @@ class Stats:
 
             self.ui.lineEdit_prjname_1.setText(prjname)
             self.ui.lineEdit_prjpath_1.setText(prjpath)
-            i=2
+            i = 2
             uiWidget = f"lineEdit_prjname_{i}"
             # self.ui.uiWidget.setText(prjname)
             # self.ui.setAttribute(uiWidget, prjname)
@@ -59,9 +62,11 @@ class Stats:
             # obj.lineEdit_prjname_3.setText(prjname)
             setattr(obj, 'lineEdit_prjname_2', prjname)
             print(obj)
-            print(getattr(obj,'lineEdit_prjpath_1'))
+            print(getattr(obj, 'lineEdit_prjpath_1'))
+
     def quitSoftware(self):
         sys.exit()
+
     def handleCalc(self):
         info = self.ui.textEdit.toPlainText()
 
@@ -73,23 +78,23 @@ class Stats:
             parts = line.split(' ')
 
             parts = [p for p in parts if p]
-            name,salary,age = parts
+            name, salary, age = parts
             if int(salary) >= 20000:
                 salary_above_20k += name + '\n'
             else:
                 salary_below_20k += name + '\n'
 
         QMessageBox.about(self.ui,
-                    '统计结果',
-                    f'''薪资20000 以上的有：\n{salary_above_20k}
+                          '统计结果',
+                          f'''薪资20000 以上的有：\n{salary_above_20k}
                     \n薪资20000 以下的有：\n{salary_below_20k}'''
-                    )
+                          )
+
 
 # app = QApplication([])
 # stats = Stats()
 # stats.ui.show()
 # app.exec_()
-
 
 if __name__ == "__main__":
     # database_name = 'e'
@@ -98,10 +103,7 @@ if __name__ == "__main__":
 
     database_name = '主线右线'
     prjpath = r'D:\Download\QQ文档\297358842\FileRecv\元蔓纬地设计文件\元蔓纬地设计文件\主线右线\主线右线.prj'
-    rapid_gutter_saved_path = roadglobal.tableName_of_rapidGutters_b
-
-
-
+    rapid_gutter_saved_path = ''
 
 
 

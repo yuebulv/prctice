@@ -4,13 +4,15 @@ slopelevel_max = 8 # 默认边坡最大级数
 tableName_of_slopeInGroup = 'slope_In_Group'
 tableName_of_drainageDitchInGroup = 'drainage_Ditch_In_Group'
 tableName_of_platformDrainInGroup = 'platform_Drain_In_Group'
-tableName_of_rapidGutters = 'rapidGutters'
+tableName_of_rapidGutters = 'rapid_gutters_c'  # 'rapidGutters' C型急流槽数据表名称
 # 急流槽配置参数
-cutting_rapidGutter_spacing = 40  # 挖方边坡急流槽间距
-embankment_rapidGutter_spacing = 50
+cutting_rapidGutter_spacing = 50  # 挖方边坡急流槽间距
+embankment_rapidGutter_spacing = 100
+embankment_rapidGutter_spacing_sup = 50  # 超高侧填方边坡急流槽间距
 cuttingSlopeLevel_setInterceptingDitch = [2, 4, 6, 8]  #[2, 4, 6, 8]  # [1, 2, 3, 4, 5, 6, 7, 8]  # 边坡截水沟设置于第i级边坡
 embankmentSlopeLevel_setInterceptingDitch = [1, 2, 3, 4, 5, 6, 7, 8]
 tableName_of_rapidGutters_b = 'rapid_gutters_b'  # B型急流槽数据表名称
+tableName_of_rapidGutters_a = 'rapid_gutters_a'  # B型急流槽数据表名称
 rapid_gutter_b_slope_min = 1.5  # B型急流槽（填挖交界）最小坡度
 
 # 纬地tf文件格式

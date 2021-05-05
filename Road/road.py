@@ -8,7 +8,7 @@ import road
 import mysql
 import copy
 import roadglobal
-
+from operator import itemgetter
 
 def chainages_in_chainage_ab(chainageA, chainageB, database_name, prjpath, isBreakChain = True):
     # 功能：获取桩号chainageA,chainageB范围内所有桩号，返回一个list
@@ -41,7 +41,7 @@ def chainages_in_chainage_ab(chainageA, chainageB, database_name, prjpath, isBre
         print(f'data_dic_list:{data_dic_list}')
         for data_dic in data_dic_list:
             chainages.append(data_dic['chainage'])
-        print(chainages)
+        # print(chainages)
         return chainages
 
 
@@ -746,6 +746,9 @@ def insert_slope_value_betweent_chainageAB(rapidGutterChainage_noBreak, nearbyCh
     :param nearbyChainageData:桩号B相邻桩号A/C及其边坡信息
     :param prjpath:prj文件路径
     :return:[[第1级dic]...[第i级dic]]
+    存在问题：
+    只有A/C断面同为填方或者同为挖方时适用
+
     '''
 
     if nearbyChainageData == '':
@@ -759,16 +762,19 @@ def insert_slope_value_betweent_chainageAB(rapidGutterChainage_noBreak, nearbyCh
                 nearbyChainageData[i][temp] = copy.deepcopy(nearbyChainageData_copy[i][j])
             except IndexError:
                 nearbyChainageData[i].append(nearbyChainageData_copy[i][j])
-        nearbyChainageData[i] = nearbyChainageData[i][1:]
+        nearbyChainageData[i] = nearbyChainageData[i][1:]  # 删除第0级
     # for i in range(0, len(nearbyChainageData)):
     #     for j in range(0, len(nearbyChainageData[i])):
     #         print(f'nearbyChainageData[i][j]:{nearbyChainageData[i][j]}')
-
+    print(f'nearbyChainageData:{nearbyChainageData}')
     res = []
     data_dic = []
     height_B_sum = 0
-    maxLevel_1 = nearbyChainageData[0][0]['最大级数']
-    maxLevel_2 = nearbyChainageData[1][0]['最大级数']
+    try:
+        maxLevel_1 = nearbyChainageData[0][0]['最大级数']
+        maxLevel_2 = nearbyChainageData[1][0]['最大级数']
+    except:
+        return ''
     if maxLevel_1 < maxLevel_2:  # 用级数来区分主从断面
         index_list = [0, 1]
     elif maxLevel_1 > maxLevel_2:
@@ -1163,6 +1169,7 @@ def getDataFromTf(pathOfTF, chainage='all'):
         return ''
 def getCrossSectionOf3dr(pathof3dr,chainage='all'):
     #查找pathof3dr中给定桩号的横断面信息cross_section，桩号缺省或桩号为all时查找全部桩号
+    # 结果中有可能包含空行
     prjpath=pathof3dr
     chainage=chainage.strip()
     if os.path.exists(prjpath):
@@ -1185,11 +1192,11 @@ def getCrossSectionOf3dr(pathof3dr,chainage='all'):
         else:
             file=open(prjpath,'r')
             data_file=file.read().upper()
-            cross_sections=re.findall(regx,data_file,re.MULTILINE)
+            cross_sections=re.findall(regx, data_file,re.MULTILINE)
             file.close()
             return cross_sections
     else:
-        temp=road.gui_filenotfine(prjpath)
+        temp = road.gui_filenotfine(prjpath)
 def getChainageFromChainagetable(db,chainage,breakchain=False):
     #功能:找出桩号chainage（变量）在数据库db数据表Chainage（常量）中对应的桩号，
     #breakchain=False,表示给定桩号不含断链，且返回字段chainage_naBreakChain中对应的桩号，否则返回字段chainage中桩号
@@ -1258,7 +1265,7 @@ def get_rapid_gutter_parameter(chainage, targetTable, database_name, prjpath, *c
             for chainage_for in [data_dic['chainage_last'], data_dic['chainage']]:
                 sql = f'''select *
                     from {targetTable}
-                    where chainage = {chainage_for}
+                    where chainage = '{chainage_for}'
                     '''
                 for i in [0, 1]:
                     try:
@@ -1281,11 +1288,6 @@ def get_rapid_gutter_parameter(chainage, targetTable, database_name, prjpath, *c
 
 
 def set_slope_rapid_gutter(database_name, prjpath, rapid_gutter_saved_path):
-    # 存在问题
-    # 填方
-    # 有中央分隔带才需要设填方急流槽
-    # 最高级为1级边坡也需要设填方急流槽
-    # 填方左右侧，只需单侧设急流机槽
     '''
     功能：根据挖方平台截水沟段落、急流槽间距，输出 C型急流槽(挖方平台截水沟到边沟）桩号等数据
     :param database_name:
@@ -1314,14 +1316,14 @@ def set_slope_rapid_gutter(database_name, prjpath, rapid_gutter_saved_path):
                     SELECT 
                         *
                     FROM 
-                        platformdrainingroup
-                    WHERE platformdrainingroup.`左右侧`={lorR_drain}
+                        {roadglobal.tableName_of_platformDrainInGroup}
+                    WHERE {roadglobal.tableName_of_platformDrainInGroup}.`左右侧`={lorR_drain}
                     AND 
-                        platformdrainingroup.`位于边沟左右侧`={lorR_slope_drainage}
+                        {roadglobal.tableName_of_platformDrainInGroup}.`位于边沟左右侧`={lorR_slope_drainage}
                     AND 
-                        platformdrainingroup.第i级=1
+                        {roadglobal.tableName_of_platformDrainInGroup}.第i级=1
                     AND 
-                        platformdrainingroup.最大级数max>1
+                        {roadglobal.tableName_of_platformDrainInGroup}.最大级数max>1
                     ORDER BY 
                        id ASC;'''
                 um.cursor.execute(sql)
@@ -1331,12 +1333,12 @@ def set_slope_rapid_gutter(database_name, prjpath, rapid_gutter_saved_path):
                     SELECT 
                         *
                     FROM 
-                        platformdrainingroup
-                    WHERE platformdrainingroup.`左右侧`={lorR_drain}
+                        {roadglobal.tableName_of_platformDrainInGroup}
+                    WHERE {roadglobal.tableName_of_platformDrainInGroup}.`左右侧`={lorR_drain}
                     AND 
-                        platformdrainingroup.`位于边沟左右侧`={lorR_slope_drainage}
+                        {roadglobal.tableName_of_platformDrainInGroup}.`位于边沟左右侧`={lorR_slope_drainage}
                     AND 
-                        platformdrainingroup.第i级=最大级数max-1 
+                        {roadglobal.tableName_of_platformDrainInGroup}.第i级=最大级数max-1 
                     ORDER BY 
                        id ASC;'''
                 um.cursor.execute(sql)
@@ -1438,6 +1440,213 @@ def set_slope_rapid_gutter(database_name, prjpath, rapid_gutter_saved_path):
     outputslopefile.close()
     print(f'{roadglobal.tableName_of_rapidGutters}表，完成')
 
+
+def set_rapid_gutter_a(database_name, prjpath, rapid_gutter_saved_path):
+    '''
+    功能：A型急流槽(填方横向排水管到排水沟，排中央分隔带水，默认中央分隔带和排水沟都存在时，才有条件设置A型急流槽）
+        # 1)第1级填方边坡段落；合并左侧与右侧段落；2）从中间向两端，按给定间距设置急流槽，超高段急流槽间距不一样；可根据TF文件中基缘左右高度与设计标高之差判断超高方向；
+        # 3)判断急流槽左右侧，计算急流槽边坡数据；4）输出
+    :param database_name:
+    :param prjpath:
+    :param rapid_gutter_saved_path:
+    :return:[[res_rapid_gutter_a_list], [err_list]]
+    注：
+    [res_rapid_gutter_a_list] 为急流槽[起点，止点，左右侧，三维空间长度]
+    [err_list] 运行错误列表
+    '''
+    err_list = []
+    path_tf = road.findXPathFromPrj(prjpath, 'tf')
+    tf_value = [0] * len(roadglobal.tfTitle_dic)
+    res_rapid_gutter_a_list = [[], []]
+    path_3dr = road.findXPathFromPrj(prjpath, '3dr')
+
+    with mysql.UsingMysql(log_time=False, db=database_name) as um:
+        # 1) 第1级填方边坡段落；
+        chainage_range_dic_list = [[], []]
+        chainages_list = []  # 桩号， 起点1、止点-1，无断链桩号
+        for lorR_drain in [1, 2]:
+            sql = f'''
+                    SELECT 
+                        *
+                    FROM 
+                        {roadglobal.tableName_of_drainageDitchInGroup}
+                    WHERE `左右侧`={lorR_drain}
+                    AND `坡高max`<0
+                    ORDER BY 
+                       id ASC;'''
+            um.cursor.execute(sql)
+            chainage_range_dic_list[lorR_drain - 1] = um.cursor.fetchall()  # 第1级段落
+            for chainage_range_dic in chainage_range_dic_list[lorR_drain - 1]:
+                temp = [chainage_range_dic['起点'], 1,
+                        road.switchBreakChainageToNoBreak(chainage_range_dic['起点'], prjpath)]
+                chainages_list.append(temp)
+                temp = [chainage_range_dic['止点'], -1,
+                        road.switchBreakChainageToNoBreak(chainage_range_dic['止点'], prjpath)]
+                chainages_list.append(temp)
+        print(f'chainage_range_dic_list:{chainage_range_dic_list}')
+        # print(f'chainages_list:{chainages_list}')
+        # 2) 左侧与右侧段落合并；
+        chainage_range_merge_l_r = []  # 起点 止点 起点（不含断链） 止点（不含断链）
+        chainages_list_sorted = sorted(chainages_list, key=itemgetter(2))  # 按无断链桩号排序
+        print(f'chainage_list_list_sorter:{chainages_list_sorted}')
+        status = 0
+        status_last = 0
+        for i in range(len(chainages_list_sorted)):
+            status += chainages_list_sorted[i][1]
+            if status == 1 and status_last == 0:
+                startchainage = chainages_list_sorted[i][0]
+                startchainage_nobreak = chainages_list_sorted[i][2]
+            elif status == 0:
+                endchainage = chainages_list_sorted[i][0]
+                endchainage_nobreak = chainages_list_sorted[i][2]
+                chainage_range_merge_l_r.append(
+                    [startchainage, endchainage, startchainage_nobreak, endchainage_nobreak])
+            status_last = status
+        print(f'chainage_range_merge_l_r:{chainage_range_merge_l_r}')
+        # 3) 从设计标高最小处开始设置急流槽，
+        nobreakchainages_rapit_gutter_list = []  # 急流槽桩号
+        for data_dic in chainage_range_merge_l_r:
+            # startChainage_nobreak = road.switchBreakChainageToNoBreak(data_dic[0], prjpath)
+            # endChainage_nobreak = road.switchBreakChainageToNoBreak(data_dic[1], prjpath)
+            chainages = road.chainages_in_chainage_ab(data_dic[0], data_dic[1], database_name, prjpath)
+            print('chainages:', chainages)
+            # 得到设计标高最小的桩号chainage_lowest，及是否在超高范围sup
+            design_height_lowest = 9999
+            sup = []
+            chainages_nobreak = []
+            for chainage in chainages:
+                data_3dr = road.getCrossSectionOf3dr(path_3dr, chainage=chainage)
+                # print(f'data_3dr:{data_3dr}')
+                data_3dr = list([temp for temp in data_3dr[0].splitlines() if temp.strip()])
+                # print(f'data_3dr_list:{data_3dr}')
+                design_height = float(data_3dr[lorR_drain].split()[2])  # 设计标高
+                design_height_lowest = min(design_height_lowest, design_height)
+                if design_height_lowest == design_height:
+                    chainage_lowest = chainage
+                chainages_nobreak.append(road.switchBreakChainageToNoBreak(chainage, prjpath))
+                tf_list = road.getDataFromTf(path_tf, chainage)
+                tf_list = tf_list[0].replace('"', '').split()
+                if len(tf_list) != len(roadglobal.tfTitle_dic):
+                    err_txt = f'{path_tf}中{chainage}列，与road.tfTitle_dic不一致，后续将采用其上一桩号值计算'
+                    err_list.append(err_txt)
+                    tf_list[1:] = tf_value[1:]
+                loc = roadglobal.tfTitle_dic['基缘左高'] - 1
+                loc_2 = roadglobal.tfTitle_dic['基缘右高'] - 1
+                if (design_height - float(tf_list[loc])) * (design_height - float(tf_list[loc_2])) <= 0:  # 判定为超高
+                    sup.append(True)
+                else:
+                    sup.append(False)
+                tf_value = tf_list
+            print(f'sup:{sup}')
+            print(f'急流槽基准桩号chainage_lowest:{chainage_lowest}')
+            # 设置急流槽，以chainage_lowest为中心向两端布设
+            chainage_nobreak_rapid_gutter = road.switchBreakChainageToNoBreak(chainage_lowest, prjpath)
+            chainage_nobreak_rapid_gutter_last = chainage_nobreak_rapid_gutter
+            while chainage_nobreak_rapid_gutter >= chainages_nobreak[0]:
+                nobreakchainages_rapit_gutter_list.append(chainage_nobreak_rapid_gutter)
+                chainage_nobreak_rapid_gutter -= roadglobal.embankment_rapidGutter_spacing_sup
+                for i in range(len(chainages_nobreak)):
+                    if chainage_nobreak_rapid_gutter <= chainages_nobreak[i] <= chainage_nobreak_rapid_gutter_last:
+                        if sup[i]:
+                            chainage_nobreak_rapid_gutter = chainage_nobreak_rapid_gutter_last \
+                                                            - roadglobal.embankment_rapidGutter_spacing_sup
+                            break
+                        chainage_nobreak_rapid_gutter = chainage_nobreak_rapid_gutter_last \
+                                                        - roadglobal.embankment_rapidGutter_spacing
+                chainage_nobreak_rapid_gutter_last = chainage_nobreak_rapid_gutter
+            # nobreakchainages_rapit_gutter_list = nobreakchainages_rapit_gutter_list[1:]
+            chainage_nobreak_rapid_gutter = road.switchBreakChainageToNoBreak(chainage_lowest, prjpath)
+            chainage_nobreak_rapid_gutter_last = chainage_nobreak_rapid_gutter
+            while chainage_nobreak_rapid_gutter <= chainages_nobreak[-1]:
+                nobreakchainages_rapit_gutter_list.append(chainage_nobreak_rapid_gutter)
+                chainage_nobreak_rapid_gutter += roadglobal.embankment_rapidGutter_spacing_sup
+                for i in range(len(chainages_nobreak)):
+                    if chainage_nobreak_rapid_gutter_last <= chainages_nobreak[i] <= chainage_nobreak_rapid_gutter:
+                        if sup[i]:
+                            chainage_nobreak_rapid_gutter = chainage_nobreak_rapid_gutter_last \
+                                                            + roadglobal.embankment_rapidGutter_spacing_sup
+                            break
+                        chainage_nobreak_rapid_gutter = chainage_nobreak_rapid_gutter_last + \
+                                                        roadglobal.embankment_rapidGutter_spacing
+
+                chainage_nobreak_rapid_gutter_last = chainage_nobreak_rapid_gutter
+            nobreakchainages_rapit_gutter_list = list(set(nobreakchainages_rapit_gutter_list))
+            nobreakchainages_rapit_gutter_list.sort()  # 得到急流槽桩号
+            print(f'nobreakchainages_rapit_gutter_list:{nobreakchainages_rapit_gutter_list}')
+        # 4） 获得急流槽左右侧，及高度、坡度等数据
+        # chainages_rapit_gutter_list = []
+        rapidGutters_dic_list = []
+        for i in range(len(nobreakchainages_rapit_gutter_list)):
+            # chainages_rapit_gutter_list.append(road.switchNoBreakToBreakChainage(nobreakchainages_rapit_gutter_list[i], prjpath))
+            rapidGutter_dic_list = [[], []]
+            for lorR in [1, 2]:
+                nearbyChainageData = road.get_rapid_gutter_parameter(nobreakchainages_rapit_gutter_list[i], 'slope',
+                                                                     database_name, prjpath, lorR, 1, isBreakchainage=True)
+                print('nearbyChainageData1', nearbyChainageData)
+                if len(nearbyChainageData[0]) == 0 and len(nearbyChainageData[1]) == 0:
+                    continue
+                elif len(nearbyChainageData[0]) == 0:
+                    rapidGutter_dic_list[lorR-1] = nearbyChainageData[1]
+                elif len(nearbyChainageData[1]) == 0:
+                    rapidGutter_dic_list[lorR-1] = nearbyChainageData[0]
+                else:
+                    rapidGutter_dic_list[lorR-1] = road.insert_slope_value_betweent_chainageAB(nobreakchainages_rapit_gutter_list[i], nearbyChainageData, prjpath)
+                    # try:
+                    #     rapidGutter_dic_list = road.insert_slope_value_betweent_chainageAB(nobreakchainages_rapit_gutter_list[i],
+                    #                                                                    nearbyChainageData, prjpath)
+                    # except:
+                    #         rapidGutter_dic_list = road.insert_slope_value_betweent_chainageAB(
+                    #         nobreakchainages_rapit_gutter_list[i],
+                    #         nearbyChainageData, prjpath)
+                print(f'rapidGutter_dic_list:{rapidGutter_dic_list[lorR-1]}')
+            try:
+                temp1 = rapidGutter_dic_list[0][0]['坡高']
+            except IndexError:
+                try:
+                    temp2 = rapidGutter_dic_list[1][0]['坡高']
+                except IndexError:
+                    pass
+                else:
+                    rapidGutters_dic_list.append(rapidGutter_dic_list[1])
+            else:
+                try:
+                    temp2 = rapidGutter_dic_list[1][0]['坡高']
+                except IndexError:
+                    rapidGutters_dic_list.append(rapidGutter_dic_list[0])
+                else:
+                    if rapidGutter_dic_list[0][0]['坡高'] <= rapidGutter_dic_list[1][0]['坡高']:
+                        rapidGutters_dic_list.append(rapidGutter_dic_list[0])
+                    else:
+                        rapidGutters_dic_list.append(rapidGutter_dic_list[1])
+        print(f'rapidGutters_dic_list:len{len(rapidGutters_dic_list)}:{rapidGutters_dic_list}')
+        # 输出
+        try:
+            outputfile = open(rapid_gutter_saved_path, 'w')
+            outputfile.write(str(list(rapidGutters_dic_list[0][0].keys())))
+            outputfile.write('\n')
+        except FileNotFoundError:
+            err_txt = f'{rapid_gutter_saved_path}文件不存在，请检查'
+            err_list.append(err_txt)
+        except IndexError:
+            err_txt = 'set_rapid_gutter_a未找到A型急流槽'
+            err_list.append(err_txt)
+            outputfile.close()
+        else:
+            for temp0 in rapidGutters_dic_list:
+                for temp in temp0:
+                    try:
+                        del temp['id']
+                    except KeyError:
+                        pass
+                    road.insert_dic_data_to_table(database_name, roadglobal.tableName_of_rapidGutters_a, temp)
+                    outputfile.write(str(list(temp.values())))
+                    outputfile.write('\n')
+            outputfile.close()
+        res_rapid_gutter_b_list_and_err_list = [[rapidGutters_dic_list], [err_list]]
+        print('set_rapid_gutter_a，A型急流槽输出成功！')
+        return res_rapid_gutter_b_list_and_err_list
+
+
 def set_rapid_gutter_b(database_name, prjpath, rapid_gutter_saved_path):
     '''
     功能：生成B型急流槽(填挖交界截水沟）
@@ -1522,7 +1731,7 @@ def set_rapid_gutter_b(database_name, prjpath, rapid_gutter_saved_path):
                         if abs(rapid_gutter_b_slope_list[i-1]) > roadglobal.rapid_gutter_b_slope_min or i == len(chainages)-1:
                             if res_dic['长度'] > 0:
                                 if i == len(chainages)-1 and abs(rapid_gutter_b_slope_list[i-1]) <= roadglobal.rapid_gutter_b_slope_min:
-                                    res_dic['长度'] += rapid_gutter_len  # abs(CB - CA)
+                                    res_dic['长度'] += round(rapid_gutter_len, 3)  # abs(CB - CA)
                                     res_dic['止点'] = chainages[i]
                                 res_dic['起点'] = road.switchBreakChainageToNoBreak(res_dic['止点'], prjpath)-res_dic['长度']
                                 res_dic['起点'] = road.switchNoBreakToBreakChainage(res_dic['起点'], prjpath)
@@ -1530,7 +1739,7 @@ def set_rapid_gutter_b(database_name, prjpath, rapid_gutter_saved_path):
                                 res_dic = copy.deepcopy(res_dic)
                                 res_dic['长度'] = 0
                         elif abs(rapid_gutter_b_slope_list[i-1]) <= roadglobal.rapid_gutter_b_slope_min:
-                            res_dic['长度'] += rapid_gutter_len  # abs(CB-CA)
+                            res_dic['长度'] += round(rapid_gutter_len, 3)  # abs(CB-CA)
                             res_dic['止点'] = chainages[i]
                     print(f'rapid_gutter_b_slope_list:len{len(rapid_gutter_b_slope_list)}:{rapid_gutter_b_slope_list}')
         print(f'res_rapid_gutter_b_list:{res_rapid_gutter_b_list}')
