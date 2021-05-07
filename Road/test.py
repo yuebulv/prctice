@@ -15,7 +15,7 @@ from PySide2.QtCore import QFile
 import tkinter
 import tkinter.messagebox
 from operator import itemgetter
-
+import json
 
 class Stats:
     def __init__(self):
@@ -105,5 +105,9 @@ if __name__ == "__main__":
     prjpath = r'D:\Download\QQ文档\297358842\FileRecv\元蔓纬地设计文件\元蔓纬地设计文件\主线右线\主线右线.prj'
     rapid_gutter_saved_path = ''
 
+    s = '{""}'
 
+    data_json = json.load(open(r'D:\新建文件夹\BIM数据研究\GK\sy.json', 'r'))
+    print(type(data_json))
+    print(data_json)
 

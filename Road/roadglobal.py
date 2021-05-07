@@ -13,7 +13,8 @@ cuttingSlopeLevel_setInterceptingDitch = [2, 4, 6, 8]  #[2, 4, 6, 8]  # [1, 2, 3
 embankmentSlopeLevel_setInterceptingDitch = [1, 2, 3, 4, 5, 6, 7, 8]
 tableName_of_rapidGutters_b = 'rapid_gutters_b'  # B型急流槽数据表名称
 tableName_of_rapidGutters_a = 'rapid_gutters_a'  # B型急流槽数据表名称
-rapid_gutter_b_slope_min = 1.5  # B型急流槽（填挖交界）最小坡度
+rapid_gutter_b_slope_min = 15.5  # B型急流槽（填挖交界）最小坡度
+embankment_slope_max = -1  # 路堤最大坡度，为负数（A型急流槽设置的最大坡度）
 
 # 纬地tf文件格式
 tfTitle_dic = {'桩号': 1, '挖方面积': 2, '填方面积': 3, '中桩填挖': 4, '路基左宽': 5, '路基右宽': 6, '基缘左高': 7, '基缘右高': 8,

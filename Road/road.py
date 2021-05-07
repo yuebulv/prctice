@@ -1423,20 +1423,20 @@ def set_slope_rapid_gutter(database_name, prjpath, rapid_gutter_saved_path):
                 for temp in rapidGutters_dic_list:
                     print(temp)
                 try:
-                    del rapidGutters_dic_list[0][0]['id']
+                    # del rapidGutters_dic_list[0][0]['id']
                     outputslopefile.write(str(list(rapidGutters_dic_list[0][0].keys())))
                     outputslopefile.write('\n')
                 except:
                     print(f'set_slope_rapid_gutter-outputslopefile:文件写入错误')
                 for temp1 in rapidGutters_dic_list:
                     for temp in temp1:
+                        outputslopefile.write(str(list(temp.values())))
+                        outputslopefile.write('\n')
                         try:
                             del temp['id']
                         except KeyError:
                             pass
                         road.insert_dic_data_to_table(database_name, roadglobal.tableName_of_rapidGutters, temp)
-                        outputslopefile.write(str(list(temp.values())))
-                        outputslopefile.write('\n')
     outputslopefile.close()
     print(f'{roadglobal.tableName_of_rapidGutters}表，完成')
 
@@ -1614,7 +1614,8 @@ def set_rapid_gutter_a(database_name, prjpath, rapid_gutter_saved_path):
                 except IndexError:
                     rapidGutters_dic_list.append(rapidGutter_dic_list[0])
                 else:
-                    if rapidGutter_dic_list[0][0]['坡高'] <= rapidGutter_dic_list[1][0]['坡高']:
+                    if rapidGutter_dic_list[0][0]['坡高'] <= rapidGutter_dic_list[1][0]['坡高'] and \
+                            float(rapidGutter_dic_list[0][0]['S坡度']) <= roadglobal.embankment_slope_max:  # 排除挡墙范围
                         rapidGutters_dic_list.append(rapidGutter_dic_list[0])
                     else:
                         rapidGutters_dic_list.append(rapidGutter_dic_list[1])
@@ -1634,13 +1635,13 @@ def set_rapid_gutter_a(database_name, prjpath, rapid_gutter_saved_path):
         else:
             for temp0 in rapidGutters_dic_list:
                 for temp in temp0:
+                    outputfile.write(str(list(temp.values())))
+                    outputfile.write('\n')
                     try:
                         del temp['id']
                     except KeyError:
                         pass
                     road.insert_dic_data_to_table(database_name, roadglobal.tableName_of_rapidGutters_a, temp)
-                    outputfile.write(str(list(temp.values())))
-                    outputfile.write('\n')
             outputfile.close()
         res_rapid_gutter_b_list_and_err_list = [[rapidGutters_dic_list], [err_list]]
         print('set_rapid_gutter_a，A型急流槽输出成功！')
@@ -1757,9 +1758,13 @@ def set_rapid_gutter_b(database_name, prjpath, rapid_gutter_saved_path):
             outputfile.close()
         else:
             for temp in res_rapid_gutter_b_list:
-                road.insert_dic_data_to_table(database_name, roadglobal.tableName_of_rapidGutters_b, temp)
                 outputfile.write(str(list(temp.values())))
                 outputfile.write('\n')
+                try:
+                    del temp['id']
+                except KeyError:
+                    pass
+                road.insert_dic_data_to_table(database_name, roadglobal.tableName_of_rapidGutters_b, temp)
             outputfile.close()
         res_rapid_gutter_b_list_and_err_list = [[res_rapid_gutter_b_list], [err_list]]
         print('set_rapid_gutter_b，B型急流槽输出成功！')
