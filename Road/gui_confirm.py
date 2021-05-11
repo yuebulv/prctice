@@ -1,4 +1,6 @@
 from tkinter import *
+from tkinter import simpledialog
+import tkinter
 import sys
 import os
 class My_gui():
@@ -21,4 +23,11 @@ def gui_start():
     ZMJ_PORTAL.set_init_window()
     init_window.mainloop()
 
-gui_start()
+
+def gui_input(title):
+    root = tkinter.Tk()
+    root.withdraw()
+    res = simpledialog.askstring(title, title)
+    return res
+
+# gui_start()

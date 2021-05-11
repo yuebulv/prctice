@@ -74,6 +74,7 @@ import mysql
 import copy
 import glob
 import roadglobal
+import gui_confirm
 # import filedialog
 logName = ''
 logPath = ''
@@ -92,63 +93,68 @@ if __name__ == "__main__":
         regx = r'(.+)(?=\.\w+)'
         prjname = re.findall(regx, slopefilepath_list[-1])[0]
         prjname = prjname.replace('+', '')
+        try:
+            prjname += '_'+gui_confirm.gui_input('请输入项目名称')
+            print(f'prjname:{prjname}')
+        except TypeError:
+            pass
         # print(prjname)
         # 程序运行日志记录地址
         logName = f'{prjname}_log.txt'
         slopefilepath_list[-1] = logName
         logPath = '\\'.join(slopefilepath_list)
 
-        # #一、 生成数据表chainage
-        # road.setupChainageTable(prjname, prjpath)
-        # road.creatMysqlDrainageDitchTable(prjname)
-        # with mysql.UsingMysql(log_time=False, db=prjname) as um:
-        #     sql = f"select chainage from chainage "
-        #     um.cursor.execute(sql)
-        #     chainageValuesInTable_list_dic = um.cursor.fetchall()
-        # chainageValuesInTable_list = [item[key] for item in chainageValuesInTable_list_dic for key in item]
-        # chainages = chainageValuesInTable_list
-        #
-        # # 二、 生成数据表DrainageDitchTable
-        # for chainage in chainages:
-        #     threedrpath = road.findXPathFromPrj(prjpath, '3dr')
-        #     temp_insert = road.insertDataToTableDrainageDitchFrom3dr(threedrpath, chainage, prjname)
-        # # 三、新建数据表slope，并导入数据
-        # road.creatMysqlSlopeTable(prjname)
-        # for chainage in chainages:
-        #     road.insertDataFrom3drToTableSlope(prjpath, chainage, prjname)
-        # road.creatMysqlSlopeProtecTypeTable(prjname)
-        #
-        # # 四、输出分组边坡段落及必要参数
-        # # （['起点', '止点', '长度', '左右侧', '第i级', 'S坡度', '位于边沟左右侧', '防护类型', '最大级数max', '坡高max', '坡高min', '坡面面积']）
-        # with mysql.UsingMysql(log_time=False, db=prjname) as um:
-        #     um.cursor.execute(f'drop table if exists {roadglobal.tableName_of_slopeInGroup}')
+        #一、 生成数据表chainage
+        road.setupChainageTable(prjname, prjpath)
+        road.creatMysqlDrainageDitchTable(prjname)
+        with mysql.UsingMysql(log_time=False, db=prjname) as um:
+            sql = f"select chainage from chainage "
+            um.cursor.execute(sql)
+            chainageValuesInTable_list_dic = um.cursor.fetchall()
+        chainageValuesInTable_list = [item[key] for item in chainageValuesInTable_list_dic for key in item]
+        chainages = chainageValuesInTable_list
+
+        # 二、 生成数据表DrainageDitchTable
+        for chainage in chainages:
+            threedrpath = road.findXPathFromPrj(prjpath, '3dr')
+            temp_insert = road.insertDataToTableDrainageDitchFrom3dr(threedrpath, chainage, prjname)
+        # 三、新建数据表slope，并导入数据
+        road.creatMysqlSlopeTable(prjname)
+        for chainage in chainages:
+            road.insertDataFrom3drToTableSlope(prjpath, chainage, prjname)
+        road.creatMysqlSlopeProtecTypeTable(prjname)
+
+        # 四、输出分组边坡段落及必要参数
+        # （['起点', '止点', '长度', '左右侧', '第i级', 'S坡度', '位于边沟左右侧', '防护类型', '最大级数max', '坡高max', '坡高min', '坡面面积']）
+        with mysql.UsingMysql(log_time=False, db=prjname) as um:
+            um.cursor.execute(f'drop table if exists {roadglobal.tableName_of_slopeInGroup}')
         # regx = r'(.+)(?=\.\w+)'
         # prjfilename = re.findall(regx, slopefilepath_list[-1])
-        # slopefilename = f'{prjfilename[0]}{prjname}slopedata.txt'
-        # slopefilepath_list[-1] = slopefilename
-        # slopefilepath = '\\'.join(slopefilepath_list)
-        # road.outputSlopeRange(prjname, prjpath, slopefilepath)
-        #
-        # # 五、输出分组排水段落及必要参数
-        # # 5.1输出分组边沟、排水沟段落及必要参数（['起点', '止点', '长度', '左右侧', '边坡类型', '坡高max', '坡高min']）
-        # with mysql.UsingMysql(log_time=False, db=prjname) as um:
-        #     um.cursor.execute(f'drop table if exists {roadglobal.tableName_of_drainageDitchInGroup}')
+        slopefilename = f'{prjname}slopedata.txt'
+        slopefilepath_list[-1] = slopefilename
+        slopefilepath = '\\'.join(slopefilepath_list)
+        road.outputSlopeRange(prjname, prjpath, slopefilepath)
+
+        # 五、输出分组排水段落及必要参数
+        # 5.1输出分组边沟、排水沟段落及必要参数（['起点', '止点', '长度', '左右侧', '边坡类型', '坡高max', '坡高min']）
+        with mysql.UsingMysql(log_time=False, db=prjname) as um:
+            um.cursor.execute(f'drop table if exists {roadglobal.tableName_of_drainageDitchInGroup}')
         # regx = r'(.+)(?=\.\w+)'
         # prjfilename = re.findall(regx, slopefilepath_list[-1])
-        # slopefilename = f'{prjfilename[0]}{prjname}drainagedata.txt'
-        # slopefilepath_list[-1] = slopefilename
-        # slopefilepath = '\\'.join(slopefilepath_list)
-        # road.outputDrainRange(prjname, prjpath, slopefilepath)
-        #
-        # # 5.2填方、挖方平台截水沟（['起点', '止点', '长度', '左右侧', '位于边沟左右侧', '第i级', 'P坡度', 'P宽度max', 'P宽度min']）
-        # with mysql.UsingMysql(log_time=False, db=prjname) as um:
-        #     um.cursor.execute(f'drop table if exists {roadglobal.tableName_of_platformDrainInGroup}')
-        # # regx = r'(.+)(?=\.\w+)'
-        # # prjfilename = re.findall(regx, slopefilepath_list[-1])
-        # slopefilename = f'{prjname}platformdrainagedata.txt'
-        # slopefilepath_list[-1] = slopefilename
-        # slopefilepath = '\\'.join(slopefilepath_list)
-        # road.outputPlatformdrainRange(prjname, prjpath, slopefilepath)
+        slopefilename = f'{prjname}drainagedata.txt'
+        slopefilepath_list[-1] = slopefilename
+        slopefilepath = '\\'.join(slopefilepath_list)
+        road.outputDrainRange(prjname, prjpath, slopefilepath)
+
+        # 5.2填方、挖方平台截水沟（['起点', '止点', '长度', '左右侧', '位于边沟左右侧', '第i级', 'P坡度', 'P宽度max', 'P宽度min']）
+        with mysql.UsingMysql(log_time=False, db=prjname) as um:
+            um.cursor.execute(f'drop table if exists {roadglobal.tableName_of_platformDrainInGroup}')
+        # regx = r'(.+)(?=\.\w+)'
+        # prjfilename = re.findall(regx, slopefilepath_list[-1])
+        slopefilename = f'{prjname}platformdrainagedata.txt'
+        slopefilepath_list[-1] = slopefilename
+        slopefilepath = '\\'.join(slopefilepath_list)
+        road.outputPlatformdrainRange(prjname, prjpath, slopefilepath)
 
         # 5.3A/B/C型急流槽（['起点', '止点', '长度', '左右侧', '边坡类型', '坡高max', '坡高min', '边坡坡度', '平台宽度']）
         # 5.3.1 A型急流槽(填方横向排水管到排水沟，排中央分隔带水，默认中央分隔带和排水沟都存在时，才有条件设置A型急流槽）
@@ -168,29 +174,29 @@ if __name__ == "__main__":
             outputErrFile.close()
         print(rapid_gutters_a)
 
-        # # 5.3.2 B型急流槽(填挖交界截水沟）
-        # # 1）填方排水沟段落；2）相邻断面CA/CB，沟心距GLA/GLB，沟底高HA/HB，坡度公式：((CB-CA)^2+(GLA+GLB)^2+(HA-HB)^2)^0.5/(HB-HA)；3）根据坡度判断是否设置急流槽。
-        # with mysql.UsingMysql(log_time=False, db=prjname) as um:
-        #     um.cursor.execute(f'drop table if exists {roadglobal.tableName_of_rapidGutters_b}')
-        # slopefilename = f'{prjname}rapid_gutters_b.txt'
-        # slopefilepath_list[-1] = slopefilename
-        # rapid_gutter_saved_path = '\\'.join(slopefilepath_list)
-        # rapid_gutters_b = road.set_rapid_gutter_b(prjname, prjpath, rapid_gutter_saved_path)
-        # if len(rapid_gutters_b[1]) > 0:
-        #     outputErrFile = open(logPath, 'a')
-        #     for errTxt in rapid_gutters_b[1]:
-        #         outputErrFile.write(str(errTxt))
-        #         outputErrFile.write('\n')
-        #     outputErrFile.close()
-        # print(rapid_gutters_b)
-        #
-        # # 5.3.3 C型急流槽(挖方平台截水沟到边沟）
-        # with mysql.UsingMysql(log_time=False, db=prjname) as um:
-        #     um.cursor.execute(f'drop table if exists {roadglobal.tableName_of_rapidGutters}')
-        # slopefilename = f'{prjname}rapid_gutters_c.txt'
-        # slopefilepath_list[-1] = slopefilename
-        # rapid_gutter_saved_path = '\\'.join(slopefilepath_list)
-        # road.set_slope_rapid_gutter(prjname, prjpath, rapid_gutter_saved_path)
+        # 5.3.2 B型急流槽(填挖交界截水沟）
+        # 1）填方排水沟段落；2）相邻断面CA/CB，沟心距GLA/GLB，沟底高HA/HB，坡度公式：((CB-CA)^2+(GLA+GLB)^2+(HA-HB)^2)^0.5/(HB-HA)；3）根据坡度判断是否设置急流槽。
+        with mysql.UsingMysql(log_time=False, db=prjname) as um:
+            um.cursor.execute(f'drop table if exists {roadglobal.tableName_of_rapidGutters_b}')
+        slopefilename = f'{prjname}rapid_gutters_b.txt'
+        slopefilepath_list[-1] = slopefilename
+        rapid_gutter_saved_path = '\\'.join(slopefilepath_list)
+        rapid_gutters_b = road.set_rapid_gutter_b(prjname, prjpath, rapid_gutter_saved_path)
+        if len(rapid_gutters_b[1]) > 0:
+            outputErrFile = open(logPath, 'a')
+            for errTxt in rapid_gutters_b[1]:
+                outputErrFile.write(str(errTxt))
+                outputErrFile.write('\n')
+            outputErrFile.close()
+        print(rapid_gutters_b)
+
+        # 5.3.3 C型急流槽(挖方平台截水沟到边沟）
+        with mysql.UsingMysql(log_time=False, db=prjname) as um:
+            um.cursor.execute(f'drop table if exists {roadglobal.tableName_of_rapidGutters}')
+        slopefilename = f'{prjname}rapid_gutters_c.txt'
+        slopefilepath_list[-1] = slopefilename
+        rapid_gutter_saved_path = '\\'.join(slopefilepath_list)
+        road.set_slope_rapid_gutter(prjname, prjpath, rapid_gutter_saved_path)
 
         # 5.4沉砂池（['起点', '止点', '长度', '左右侧', '边坡类型', '坡高max', '坡高min', '边坡坡度', '平台宽度']）
 

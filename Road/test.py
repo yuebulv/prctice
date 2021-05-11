@@ -16,6 +16,8 @@ import tkinter
 import tkinter.messagebox
 from operator import itemgetter
 import json
+import gui_confirm
+from tkinter import simpledialog
 
 class Stats:
     def __init__(self):
@@ -91,10 +93,9 @@ class Stats:
                           )
 
 
-# app = QApplication([])
-# stats = Stats()
-# stats.ui.show()
-# app.exec_()
+
+
+
 
 if __name__ == "__main__":
     # database_name = 'e'
@@ -107,7 +108,13 @@ if __name__ == "__main__":
 
     s = '{""}'
 
-    data_json = json.load(open(r'D:\新建文件夹\BIM数据研究\GK\sy.json', 'r'))
-    print(type(data_json))
-    print(data_json)
+    # data_json = json.load(open(r'D:\新建文件夹\BIM数据研究\GK\sy.json', 'r'))
+    # print(type(data_json))
+    # print(data_json)
+    a = gui_confirm.gui_input('请输入项目名称')
+    print(a)
+    # print(type(gui_confirm.gui_input('请输入项目名称')))
+
+
+
 
