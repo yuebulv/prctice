@@ -27,6 +27,7 @@ tfTitle_dic = {'桩号': 1, '挖方面积': 2, '填方面积': 3, '中桩填挖'
                '右路床': 51, '左土肩培土': 52, '右土肩培土': 53, '左包边土': 54, '右包边土': 55, '左边沟回填': 56, '右边沟回填': 57,
                '左截沟填': 58, '左截沟挖': 59, '右截沟填': 60, '右截沟挖': 61, '挖台阶面积': 62}
 
+regx_chainage_between_chainage = r'^\w?[Kk]\d+\+\d+(?:.+[\n\r]){2}(?:.+(?:z=0\.0000\ *[\n\r]))+'
 def regx_FindXPathFromPrj(typeOfFindX):
     # return f'\*\.{typeOfFindX}\).*=\s*(.*)\s*(?=\n)'
     return f'\*\.{typeOfFindX}\).*=(.*)(?=\n)'
