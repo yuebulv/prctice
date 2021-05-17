@@ -98,12 +98,12 @@ def hdm_separated_road_handle():
         try:
             separated_x[0] = float(separated_x[0])
         except IndexError:
-            pass
+            symbol = '!=-123456789'
         else:
             if separated_x[0] > zxx_x[0]:
-                pass
+                symbol = '<' + str(separated_x[0])
             elif separated_x[0] < zxx_x[0]:
-                pass
+                symbol = '>' + str(separated_x[0])
             else:
                 err_txt = 'hdm_separated_road_handle错误：分离式路基中心线X坐标与路基中心线X坐标相等，无法判断断面在分离式左侧还是右侧，请手动修改'
                 err_list.append(err_txt)
@@ -123,4 +123,15 @@ def hdm_separated_road_handle():
                 pass
 
 if __name__ == "__main__":
-    s = hdm_separated_road_handle()
+    # s = hdm_separated_road_handle
+    temp = '== True'
+    a = str(4) + temp #+ str(2)
+    te = eval(a)
+    print(te)
+
+    if 1 == True:
+        print(1)
+    else:
+        print(2)
+
+
