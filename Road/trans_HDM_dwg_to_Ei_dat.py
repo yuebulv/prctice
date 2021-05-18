@@ -84,28 +84,28 @@ def hdm_separated_road_handle():
         # else:
         #     # 有分离式路基
         #     pass
-        regx_x = f'{layer_name}.+X=(\d+\.?\d+)\s*Y=(\d+\.?\d+)\s*z=(\d+\.?\d+)'
-        separated_x = re.findall(regx_x, hdm_xyz_list, re.MULTILINE)  # 分离式路基中心线X坐标
+        regx_x = f'{layer_name}.+x=(\d+\.?\d+)\s*y=(\d+\.?\d+)\s*z=(\d+\.?\d+)'
+        separated_x_tuple = re.findall(regx_x, hdm_xyz_list, re.MULTILINE)  # 分离式路基中心线X坐标
 
-        regx_x = f'{layer_name_zxx}.+X=(\d+\.?\d+)\s*Y=(\d+\.?\d+)\s*z=(\d+\.?\d+)'
-        zxx_x = re.findall(regx_x, hdm_xyz_list, re.MULTILINE)  # 路基中心线X坐标
+        regx_x = f'{layer_name_zxx}.+x=(\d+\.?\d+)\s*y=(\d+\.?\d+)\s*z=(\d+\.?\d+)'
+        zxx_x_tuple = re.findall(regx_x, hdm_xyz_list, re.MULTILINE)  # 路基中心线X坐标
         regx_line = r'.+'
         hdm_lines = re.findall(regx_line, hdm_xyz_list, re.MULTILINE)
-        if len(zxx_x) == 0:
+        if len(zxx_x_tuple) == 0:
             err_txt = f'hdm_separated_road_handle错误：{hdm_lines[0]}无中心线，或者中心线特征字符{layer_name_zxx}不存在,请检查{hdm_data_path}文件。'
             err_list.append(err_txt)
             continue
         else:
-            zxx_x[0] = float(zxx_x[0])
+            zxx_x = float(zxx_x_tuple[0][0])
         try:
-            separated_x[0] = float(separated_x[0])
+            separated_x = float(separated_x_tuple[0][0])
         except IndexError:
             symbol = '!=-123456789'
         else:
-            if separated_x[0] > zxx_x[0]:
-                symbol = '<' + str(separated_x[0])
-            elif separated_x[0] < zxx_x[0]:
-                symbol = '>' + str(separated_x[0])
+            if separated_x > zxx_x:
+                symbol = '<' + str(separated_x)
+            elif separated_x < zxx_x:
+                symbol = '>' + str(separated_x)
             else:
                 err_txt = 'hdm_separated_road_handle错误：分离式路基中心线X坐标与路基中心线X坐标相等，无法判断断面在分离式左侧还是右侧，请手动修改'
                 err_list.append(err_txt)
@@ -125,7 +125,7 @@ def hdm_separated_road_handle():
                 print(f'xyz_point:{xyz_point}')
 
 if __name__ == "__main__":
-    s = hdm_separated_road_handle()
+    #s = hdm_separated_road_handle()
     # temp = '== True'
     # a = str(4) + temp #+ str(2)
     # te = eval(a)
@@ -136,4 +136,5 @@ if __name__ == "__main__":
     # else:
     #     print(2)
 
-
+    temp = ('253.6047', '108.4458', '0.0000')
+    print(list(temp))
