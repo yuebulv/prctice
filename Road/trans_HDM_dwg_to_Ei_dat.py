@@ -69,7 +69,9 @@ def hdm_separated_road_handle():
     print(f'len((hdms_xyz_list)):{len((hdms_xyz_list))}')
     for hdm_xyz_list in hdms_xyz_list:  # 每个断面
         xyz_lines_chainage = []
-        xyz_line_chainage_list = []
+        xyz_line_chainage_dic = {}  # {chainage:K0+000,text:'左路基宽 = 3.35 左边距 = 3.35',left_lines:[left_line...],right_lines:[right_line...]}
+        left_line = []  # left_line =[[x,y,z],[x,y,z]...]
+        right_line = []  # right_line =[[x,y,z],[x,y,z]...]
         # regx_separated = f'.+{layer_name}.+'
         # separated_xyz = re.findall(regx_separated, hdm_xyz_list, re.MULTILINE)
         # print(f'separated_xyz:{separated_xyz}')
@@ -108,8 +110,8 @@ def hdm_separated_road_handle():
                 err_txt = 'hdm_separated_road_handle错误：分离式路基中心线X坐标与路基中心线X坐标相等，无法判断断面在分离式左侧还是右侧，请手动修改'
                 err_list.append(err_txt)
                 continue
-        xyz_line_chainage_list.append(hdm_lines[0])
-        xyz_line_chainage_list.append(hdm_lines[1])
+        xyz_line_chainage_dic['chainage'] = hdm_lines[0]
+        xyz_line_chainage_dic['text'] = hdm_lines[1]
         for hdm_line in hdm_lines:  # 每条线
             regx_xyz = r'x=(\d+\.?\d+)\s*y=(\d+\.?\d+)\s*z=(\d+\.?\d+)'
             xyz_line_chainage = re.findall(regx_xyz, hdm_line, re.MULTILINE)
@@ -119,19 +121,19 @@ def hdm_separated_road_handle():
             # if len(xyz_line_chainage) == 0:
             #     if len(hdm_line.strip()) != 0:
             #         xyz_line_chainage_list.
-            for xyz_point in xyz_line_chainage: # 线中每个点
-                pass
+            for xyz_point in xyz_line_chainage:  # 线中每个点
+                print(f'xyz_point:{xyz_point}')
 
 if __name__ == "__main__":
-    # s = hdm_separated_road_handle
-    temp = '== True'
-    a = str(4) + temp #+ str(2)
-    te = eval(a)
-    print(te)
-
-    if 1 == True:
-        print(1)
-    else:
-        print(2)
+    s = hdm_separated_road_handle()
+    # temp = '== True'
+    # a = str(4) + temp #+ str(2)
+    # te = eval(a)
+    # print(te)
+    #
+    # if 1 == True:
+    #     print(1)
+    # else:
+    #     print(2)
 
 
