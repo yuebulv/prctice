@@ -27,6 +27,12 @@ tfTitle_dic = {'桩号': 1, '挖方面积': 2, '填方面积': 3, '中桩填挖'
                '右路床': 51, '左土肩培土': 52, '右土肩培土': 53, '左包边土': 54, '右包边土': 55, '左边沟回填': 56, '右边沟回填': 57,
                '左截沟填': 58, '左截沟挖': 59, '右截沟填': 60, '右截沟挖': 61, '挖台阶面积': 62}
 
+# 下（上）挡墙尺寸范围，通过横断图转dat文件是需要设置
+min_width_top_wall = 0.45
+max_width_top_wall = 2
+max_gradient_side_wall = 0.5  # 墙顶两侧侧墙的最大坡度1：X，不分正负
+min_height_side_wall = 1  # 墙顶两侧侧墙最小高度
+
 regx_chainage_between_chainage = r'^\w?[Kk]\d+\+\d+(?:.+[\n\r]){2}(?:.+(?:z=0\.0000\ *[\n\r]))+'
 def regx_FindXPathFromPrj(typeOfFindX):
     # return f'\*\.{typeOfFindX}\).*=\s*(.*)\s*(?=\n)'
