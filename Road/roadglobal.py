@@ -1,5 +1,5 @@
 #查找纬地项目文件prjpath中X文件路径，例FindXPathFromPrj(prjpath,3dr)
-slopelevel_max = 8 # 默认边坡最大级数
+slopelevel_max = 8  # 默认边坡最大级数
 # 数据表名称
 tableName_of_slopeInGroup = 'slope_In_Group'
 tableName_of_drainageDitchInGroup = 'drainage_Ditch_In_Group'

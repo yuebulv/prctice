@@ -88,21 +88,23 @@ def trans3DdataTo3drFile(get3DdataFromDatfile,path_3drsaved):   # 2 将逐桩横
                 file_3dr.write('\n')
             file_3dr.write('\n')
             file_3dr.close()
-def TransEiDatToHintTf(get3DdataFromDatfile,path_tfsaved,path_EiAre):
+
+
+def TransEiDatToHintTf(get3DdataFromDatfile, path_tfsaved, path_EiAre):
     # 2.1 用正则将每个横断面的dat数据中桩号、三维坐标放入list 中（key，HdmPoints_xyz）
     for res in get3DdataFromDatfile:
         regx=r'^(\d+\.\d+)[\n\r]'
-        key = re.findall(regx,res,re.MULTILINE) #桩号
+        key = re.findall(regx,res,re.MULTILINE)  # 桩号
         file_3dr = open(path_tfsaved, 'a')
         # file_3dr.write(key[0] + ' ')
         regx=r'((?:\d+\.\d+ ?){3})[\n\r]'
-        key_design_xyz = re.findall(regx,res,re.MULTILINE)  #中桩三维坐标
+        key_design_xyz = re.findall(regx,res,re.MULTILINE)  # 中桩三维坐标
         key_design_xyz=key_design_xyz[0].split( )
         key_design_xyz=list(map(float,key_design_xyz))
         regx = r'^(\d+)[\n\r]'
         TollNum_HdmPoints=re.findall(regx, res, re.MULTILINE)
         regx = r'(?:(?:\d+\.\d+ ){3}\d[\n\r]?)+'
-        HdmPoints_xyz=re.findall(regx, res, re.MULTILINE)   #左右侧横断面三维坐标
+        HdmPoints_xyz=re.findall(regx, res, re.MULTILINE)   # 左右侧横断面三维坐标
         # 2.3 将list中的横断面三维数据转为tf格式数据
             #2.3-pro 暂时不考虑TF中正负号的问题
             #2.3.1 先转非填、挖面积、中桩填挖类数据
@@ -115,17 +117,17 @@ def TransEiDatToHintTf(get3DdataFromDatfile,path_tfsaved,path_EiAre):
         for temp in range(1,63):
             Tflist.append(0)
         # 2.3.1 先转非填、挖面积、中桩填挖类数据
-        Tflist[0]=key[0]
-        for j in range(0,2):
+        Tflist[0] = key[0]
+        for j in range(0, 2):
             regx = r'((?:\d+\.\d+ ){3}\d)[\n\r]?'
             HdmPoint_xyz = re.findall(regx, HdmPoints_xyz[j], re.MULTILINE)  # 左右侧横断面三维坐标
             UpSlopeStatus = 0
-            list_dist_3dr=[]
-            list_high=[]
-            Hdmlist_last=[]
+            list_dist_3dr = []
+            list_high = []
+            Hdmlist_last = []
             for Hdmlist in HdmPoint_xyz:
-                Hdmlist=Hdmlist.split( )
-                Hdmlist=list(map(float,Hdmlist))
+                Hdmlist = Hdmlist.split( )
+                Hdmlist=list(map(float, Hdmlist))
                 dist_3dr=((Hdmlist[0]-key_design_xyz[0])**2+(Hdmlist[1]-key_design_xyz[1])**2)**0.5 #平距
                 dist_3dr = round(dist_3dr, 3)
                 # 判断当前Hdmlist在横断面中处于哪个部位#2.3.1.1 先将路基左/右侧数据存入list中
@@ -146,20 +148,25 @@ def TransEiDatToHintTf(get3DdataFromDatfile,path_tfsaved,path_EiAre):
                     Tflist[8+j] =round(dist_3dr,3)   #坡脚距
                     Tflist[10+j] = round(Hdmlist[2],3)
                 elif Hdmlist[-1]==7:    #边沟\排水沟
-                    try:    #识别填方护坡道
-                        dist_AdjacentPoints=((Hdmlist_last[0]-Hdmlist_last_last[0])**2+(Hdmlist_last[1]-Hdmlist_last_last[1])**2)**0.5 #相邻两点间距离
-                        high_AdjacentPoints=abs(Hdmlist_last[2]-Hdmlist_last_last[2]) #相邻两点间高差
-                        slope_AdjacentPoints=dist_AdjacentPoints/high_AdjacentPoints
+                    try:    # 识别填方护坡道
+                        dist_AdjacentPoints = ((Hdmlist_last[0]-Hdmlist_last_last[0])**2+(Hdmlist_last[1]-Hdmlist_last_last[1])**2)**0.5  # 相邻两点间距离
+                        high_AdjacentPoints = abs(Hdmlist_last[2]-Hdmlist_last_last[2])  # 相邻两点间高差
+                        slope_AdjacentPoints = dist_AdjacentPoints/high_AdjacentPoints
+                    except IndexError:
+                        pass
+                        # print(f'Hdmlist_last:{Hdmlist_last}')
+                        # print(f'Hdmlist_last_last:{Hdmlist_last_last}')
+                        # sys.exit()
                     except ZeroDivisionError:
-                        if Hdmlist_last[3]==6:
-                            Tflist[14+j]=round(dist_AdjacentPoints,3)
-                            Tflist[8 + j] = round(Tflist[8 + j]-dist_AdjacentPoints,3) # 坡脚距
+                        if Hdmlist_last[3] == 6:
+                            Tflist[14+j] = round(dist_AdjacentPoints, 3)
+                            Tflist[8 + j] = round(Tflist[8 + j]-dist_AdjacentPoints, 3)  # 坡脚距
                     else:
-                        if slope_AdjacentPoints>=24 and Hdmlist_last[3]==6: #最后一级边坡坡度缓于1:24判断为填方护坡道
-                            Tflist[14+j]=round(dist_AdjacentPoints,3)
-                            Tflist[8 + j] = round(Tflist[8 + j] - dist_AdjacentPoints,3)  # 坡脚距
-                            Tflist[10 + j] = round(Hdmlist_last_last[2],3)
-                    Tflist[12+j] =round(dist_3dr,3)  #沟缘距
+                        if slope_AdjacentPoints >= 24 and Hdmlist_last[3] == 6:  # 最后一级边坡坡度缓于1:24判断为填方护坡道
+                            Tflist[14+j] = round(dist_AdjacentPoints, 3)
+                            Tflist[8 + j] = round(Tflist[8 + j] - dist_AdjacentPoints, 3)  # 坡脚距
+                            Tflist[10 + j] = round(Hdmlist_last_last[2], 3)
+                    Tflist[12+j] = round(dist_3dr, 3)  # 沟缘距
                     list_dist_3dr.append(dist_3dr)
                     list_dist_3dr.sort()
                     min_dist_3dr=list_dist_3dr[0]
