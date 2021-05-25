@@ -9,7 +9,7 @@ tableName_of_rapidGutters = 'rapid_gutters_c'  # 'rapidGutters' C型急流槽数
 cutting_rapidGutter_spacing = 50  # 挖方边坡急流槽间距
 embankment_rapidGutter_spacing = 100
 embankment_rapidGutter_spacing_sup = 50  # 超高侧填方边坡急流槽间距
-cuttingSlopeLevel_setInterceptingDitch = [2, 4, 6, 8]  #[2, 4, 6, 8]  # [1, 2, 3, 4, 5, 6, 7, 8]  # 边坡截水沟设置于第i级边坡
+cuttingSlopeLevel_setInterceptingDitch = [2, 4, 6, 8]  # [1, 2, 3, 4, 5, 6, 7, 8]  # 边坡截水沟设置于第i级边坡
 embankmentSlopeLevel_setInterceptingDitch = [1, 2, 3, 4, 5, 6, 7, 8]
 tableName_of_rapidGutters_b = 'rapid_gutters_b'  # B型急流槽数据表名称
 tableName_of_rapidGutters_a = 'rapid_gutters_a'  # B型急流槽数据表名称
@@ -34,6 +34,13 @@ max_gradient_side_wall = 0.5  # 墙顶两侧侧墙的最大坡度1：X，不分�
 min_height_side_wall = 1  # 墙顶两侧侧墙最小高度
 
 regx_chainage_between_chainage = r'^\w?[Kk]\d+\+\d+(?:.+[\n\r]){2}(?:.+(?:z=0\.0000\ *[\n\r]))+'
+
+
 def regx_FindXPathFromPrj(typeOfFindX):
     # return f'\*\.{typeOfFindX}\).*=\s*(.*)\s*(?=\n)'
     return f'\*\.{typeOfFindX}\).*=(.*)(?=\n)'
+
+
+def regx_exclude_str(str1, str2):
+    # 按行分组，且此行中不含str1,str2字符，str1,str2顺序可换
+    return f'^(?:(?!{str1}).(?!{str2}))*$'

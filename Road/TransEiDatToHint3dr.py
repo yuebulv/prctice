@@ -154,9 +154,6 @@ def TransEiDatToHintTf(get3DdataFromDatfile, path_tfsaved, path_EiAre):
                         slope_AdjacentPoints = dist_AdjacentPoints/high_AdjacentPoints
                     except IndexError:
                         pass
-                        # print(f'Hdmlist_last:{Hdmlist_last}')
-                        # print(f'Hdmlist_last_last:{Hdmlist_last_last}')
-                        # sys.exit()
                     except ZeroDivisionError:
                         if Hdmlist_last[3] == 6:
                             Tflist[14+j] = round(dist_AdjacentPoints, 3)
