@@ -15,6 +15,7 @@
             与挡墙底边相连的图形为挡墙基座
             与挡墙基座相连的图形为挡墙基座
             输出的dat文件中挡墙以一条线代替，这条线的坡度、高度以/-\结构中的墙背为准
+            默认断面左侧或者右侧只有一个挡墙
         4、水沟识别
             非挡墙
 
@@ -49,6 +50,8 @@
 import road
 import roadglobal
 import re
+import operator
+
 
 def grop_hdms_lines(hdm_data_path, layer_name_zxx='图层中心线', layer_name='图层分离式路基中心线'):
     '''
@@ -220,24 +223,87 @@ def tagging_wall_in_hdm_xyz(xyz_line, zxx_xyz, wall_filters='default'):
                     return ''
 
 
+def del_drainage_outside_frame():
+    # 删除断面中水沟衬砌线
+    '''
+    1、删除垫层，挡墙以下，X方向与挡墙存在交集
+    2、识别边沟、盖板
+        |_|可识别内框，外框
+        两个|_|是包含关系
+        单个|_|
+        多个|_|
+
+        内框、外框连到一起的水沟，只有一个|_|，并且是包含关系，用内框代替，（外需框由4个以上的点组成）
+        内框、外框分开的水沟
+    3、识别排水沟
+    :return:
+    '''
+    pass
+
+
 if __name__ == "__main__":
     # hdm_data_path = r'C:\Users\29735\Desktop\s.txt'
     hdm_data_path = r'C:\Users\Administrator.DESKTOP-95R7ULF\Desktop\s.txt'
     layer_name = '图层分离式路基中心线'
     layer_name_zxx = '图层中心线'
     hdms_lines = grop_hdms_lines(hdm_data_path)
+
     # print(hdms_lines[0])
     # print(hdms_lines[0]['bk0+130']['left_lines'])
     # print(hdms_lines[0]['bk0+130']['right_lines'])
     # print(len(hdms_lines[0]['bk0+130']['right_lines']))
     # tagging_wall_in_hdm_xyz(hdms_lines[0]['bk0+130']['right_lines'][0])
-    for hdm in hdms_lines[0]:   # 第个桩号
+
+    # 1 墙背线替代挡墙，删除垫层
+    for hdm in hdms_lines[0]:   # 每个桩号
         print(f'hdm:{hdm}')
-        for lines in [hdms_lines[0][hdm]['left_lines'], hdms_lines[0][hdm]['right_lines']]:  # 左、右侧设计线
-            for line in lines:  # 第条设计线
-                wall_line = tagging_wall_in_hdm_xyz(line, hdms_lines[0][hdm]['zxx_xyz'])
+        for key_left_Or_right in ['left_lines', 'right_lines']:
+            for i in range(len(hdms_lines[0][hdm][key_left_Or_right])):
+                line_xyz = hdms_lines[0][hdm][key_left_Or_right][i]  # 每条设计线
+                wall_line = tagging_wall_in_hdm_xyz(line_xyz, hdms_lines[0][hdm]['zxx_xyz'])
                 if wall_line:
+                    print('原：', hdms_lines[0][hdm][key_left_Or_right][i])
+                    hdms_lines[0][hdm][key_left_Or_right][i] = wall_line  # 用墙背线替换挡墙线
                     print(f'wall_line:{wall_line}')
+                    # 删除垫层
+                    j_correct = 0
+                    for j in range(len(hdms_lines[0][hdm][key_left_Or_right])):
+                        min_x_line = None
+                        max_x_line = None
+                        max_y_line = None
+                        line_temp = hdms_lines[0][hdm][key_left_Or_right][j_correct]
+                        for point_xyz in line_temp:
+                            try:
+                                min_x_line = min(min_x_line, point_xyz[0])
+                            except TypeError:
+                                min_x_line = point_xyz[0]
+                            try:
+                                max_x_line = max(max_x_line, point_xyz[0])
+                            except TypeError:
+                                max_x_line = point_xyz[0]
+                            try:
+                                max_y_line = max(max_y_line, point_xyz[1])
+                            except TypeError:
+                                max_y_line = point_xyz[1]
+                        if not operator.eq(wall_line, line_temp):
+                            if min_x_line >= max(wall_line[0][0], wall_line[1][0]):
+                                pass
+                            elif max_x_line <= min(wall_line[0][0], wall_line[1][0]):
+                                pass
+                            else:  # 与挡墙相交
+                                if min(wall_line[0][1], wall_line[1][1]) >= max_y_line:  # 并在挡墙下方的线判断为垫层
+                                    print(f'{hdm}:{key_left_Or_right}，多段线{line_temp}为垫层')
+                                    del hdms_lines[0][hdm][key_left_Or_right][j_correct]
+                                    j_correct -= 1
+                        j_correct += 1
+                    break  # 默认断面左侧或者右侧只有一个挡墙
+    # 2 删除断面中水沟衬砌线
+    for hdm in hdms_lines[0]:  # 每个桩号
+        print(f'hdm:{hdm}')
+        for key_left_Or_right in ['left_lines', 'right_lines']:
+            for i in range(len(hdms_lines[0][hdm][key_left_Or_right])):
+                line_xyz = hdms_lines[0][hdm][key_left_Or_right][i]  # 每条设计线
+
 
 
 
