@@ -51,6 +51,7 @@ import road
 import roadglobal
 import re
 import operator
+import copy
 
 
 def grop_hdms_lines(hdm_data_path, layer_name_zxx='图层中心线', layer_name='图层分离式路基中心线'):
@@ -154,6 +155,28 @@ def grop_hdms_lines(hdm_data_path, layer_name_zxx='图层中心线', layer_name=
     res_xyz_lines_chainage_and_err.append(res_xyz_lines_chainage)
     res_xyz_lines_chainage_and_err.append(err_list)
     return res_xyz_lines_chainage_and_err
+
+
+def del_repeat_point_in_line(line):
+    '''
+    功能： 去除一条线中重叠线段
+    方法：一条线中共有n个点，有m个重叠点，则非重叠点有n-m个，寻找n-m个连续点，并且其中无重叠点，则为所找点。
+    :return:
+    '''
+    line_new = []
+    [line_new.append(i) for i in line if not i in line_new]
+    num = len(line_new)
+    line_new = []
+    if len(line) - len(line_new) > 0:
+        for i in range(len(line)):
+            line_num = line[i:(num+i)]
+            [line_new.append(j) for j in line_num if not j in line_new]
+            if len(line_new) == num:
+                return line_num
+            else:
+                line_new = []
+
+
 def tagging_wall_in_hdm_xyz(xyz_line, zxx_xyz, wall_filters='default'):
     # 已知直线或多段线各顶点坐标（坐标要按顶点前后顺序排列），如果判定为挡墙，返回墙背起止点坐标，
     '''
@@ -223,34 +246,51 @@ def tagging_wall_in_hdm_xyz(xyz_line, zxx_xyz, wall_filters='default'):
                     return ''
 
 
-def del_drainage_outside_frame():
+def del_drainage_outside_frame(lines):
     # 删除断面中水沟衬砌线
     '''
     1、删除垫层，挡墙以下，X方向与挡墙存在交集
     2、识别边沟、盖板
-        一条线中含边坡，水沟内外框，利用X值单调性来删除水沟外框
-        ++++++0---
-        ---0++++++
-        内框、外框连到一起的水沟;
-        ++++0---0++
-        0++++++0---
-        +++++
-        起点在+-分界点时，保留，其它情况同两边+或-
+        2.1一条线中含边坡，水沟内外框，利用X值单调性来删除水沟外框（内框底标高要高于外框）
+            ++++++0---
+            ---0++++++
+            2.1.2内框、外框连到一起的水沟;
+                ++++0---0++
+                0++++++0---
+                +++++
+                起点在+-分界点时，保留，其它情况同两边+或-
+        2.3边沟折线处理，边沟折线范围盖板删除
 
-        盖板
-        边沟折线处理
-
-        内框、外框分开的水沟
-            +++++++++++
-        ++++
-                +++
-        多条线，
-
-
-    3、识别排水沟
+        2.4内框、外框分开的水沟，多条线，利用X值单调性来判断内框和外框
+                +++++++++++
+            ++++
+                    +++
     :return:
     '''
-    pass
+    # lines = []
+    for line in lines:
+        # -2,2分别表示X值递减、递增；-1,1分别表示垂直递减、垂直递增。
+        i_change_index_list = [[0, 0]]  # [X值递减或递增，i值]
+        x_direction = [0]  # X变化方向为x_direction时，保留，其它删除
+
+        for i in range(1, len(line)):
+            if line[i][0] > line[i-1][0]:
+                line[i][2] = 2
+                if i_change_index_list[-1][0] != line[i][2]:
+                    i_change_index_list.append([line[i][2], i])
+            elif line[i][0] < line[i-1][0]:
+                line[i][2] = -2
+                if i_change_index_list[-1][0] != line[i][2]:
+                    i_change_index_list.append([line[i][2], i])
+            elif line[i][1] > line[i-1][1]:
+                line[i][2] = 1
+            elif line[i][1] < line[i-1][1]:
+                line[i][2] = -1
+                if x_direction[0] != -2 or x_direction != 2:
+                    x_direction[0] = i_change_index_list[-1][0]
+        print(f'line:{line}')
+        print(f'i_change_index_list:{i_change_index_list}')
+        print(f'x_direction:{x_direction}')
 
 
 if __name__ == "__main__":
@@ -271,7 +311,8 @@ if __name__ == "__main__":
         print(f'hdm:{hdm}')
         for key_left_Or_right in ['left_lines', 'right_lines']:
             for i in range(len(hdms_lines[0][hdm][key_left_Or_right])):
-                line_xyz = hdms_lines[0][hdm][key_left_Or_right][i]  # 每条设计线
+                hdms_lines[0][hdm][key_left_Or_right][i] = del_repeat_point_in_line(hdms_lines[0][hdm][key_left_Or_right][i])
+                line_xyz = copy.deepcopy(hdms_lines[0][hdm][key_left_Or_right][i])  # 每条设计线
                 wall_line = tagging_wall_in_hdm_xyz(line_xyz, hdms_lines[0][hdm]['zxx_xyz'])
                 if wall_line:
                     print('原：', hdms_lines[0][hdm][key_left_Or_right][i])
@@ -309,12 +350,17 @@ if __name__ == "__main__":
                                     j_correct -= 1
                         j_correct += 1
                     break  # 默认断面左侧或者右侧只有一个挡墙
+
     # 2 删除断面中水沟衬砌线
     for hdm in hdms_lines[0]:  # 每个桩号
         print(f'hdm:{hdm}')
         for key_left_Or_right in ['left_lines', 'right_lines']:
             for i in range(len(hdms_lines[0][hdm][key_left_Or_right])):
-                line_xyz = hdms_lines[0][hdm][key_left_Or_right][i]  # 每条设计线
+                # line_xyz = hdms_lines[0][hdm][key_left_Or_right][i]  # 每条设计线
+
+                del_drainage_outside_frame(hdms_lines[0][hdm][key_left_Or_right])
+                # print(f'ss:{hdms_lines[0][hdm][key_left_Or_right][i]}')
+
 
 
 

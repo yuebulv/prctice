@@ -98,23 +98,34 @@ class Stats:
 
 
 if __name__ == "__main__":
-    # database_name = 'e'
-    # prjpath = r'D:\新建文件夹\E\e.prj'
-    # rapid_gutter_saved_path = r'D:\新建文件夹\E\rapidgutters1.txt'
+    mylist = [1, 2, 2, 2, 2, 3, 3, 3, 4, 4, 4, 4]
+    # myset = set(mylist)
+    # for item in myset:
+    #     print("the %d has found %d" % (item, mylist.count(item)))
 
-    database_name = '主线右线'
-    prjpath = r'D:\Download\QQ文档\297358842\FileRecv\元蔓纬地设计文件\元蔓纬地设计文件\主线右线\主线右线.prj'
-    rapid_gutter_saved_path = ''
+    from collections import Counter
+    # a=Counter([1,2,2,2,2,3,3,3,4,4,4,4])
+    # print(a)
+    # print(type(a))
 
-    s = '{""}'
+    # xya_list = [[1,2],[1,2],[1,3],[1,2],[1,5]]
+    # a = Counter(xya_list)
+    # #
+    # # a = xya_list.count([1,2])
+    # print(a)
 
-    # data_json = json.load(open(r'D:\新建文件夹\BIM数据研究\GK\sy.json', 'r'))
-    # print(type(data_json))
-    # print(data_json)
-    a = gui_confirm.gui_input('请输入项目名称')
-    print(a)
-    # print(type(gui_confirm.gui_input('请输入项目名称')))
+    # set_list = set(xya_list)
+    # print(set_list)
+    # print(type(set_list))
 
+    # xya_list = [[1, 2], [1, 2], [1, 3], [1, 2], [1, 5]]
+    # set_list = set(xya_list)
+    # print(set_list)
 
+    line_new = []
+    xya_list = [[1, 2], [1, 2], [1, 3], [1, 2], [1, 5]]
+    # [line_new.append(i) for i in xya_list if not i in line_new]
+    # print(line_new)
 
-
+    line_new = xya_list[0:2]
+    print(line_new)

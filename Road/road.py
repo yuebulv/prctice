@@ -9,6 +9,7 @@ import mysql
 import copy
 import roadglobal
 from operator import itemgetter
+import sys
 
 def chainages_in_chainage_ab(chainageA, chainageB, database_name, prjpath, isBreakChain = True):
     # 功能：获取桩号chainageA,chainageB范围内所有桩号，返回一个list
@@ -1474,7 +1475,11 @@ def set_rapid_gutter_a(database_name, prjpath, rapid_gutter_saved_path):
                     AND `坡高max`<0
                     ORDER BY 
                        id ASC;'''
-            um.cursor.execute(sql)
+            try:
+                um.cursor.execute(sql)
+            except pymysql.err.ProgrammingError as err:
+                err_list.append("set_rapid_gutter_a-pymysql.err.ProgrammingError: {0}".format(err))
+                return [[], [err_list]]
             chainage_range_dic_list[lorR_drain - 1] = um.cursor.fetchall()  # 第1级段落
             for chainage_range_dic in chainage_range_dic_list[lorR_drain - 1]:
                 temp = [chainage_range_dic['起点'], 1,
@@ -1676,7 +1681,11 @@ def set_rapid_gutter_b(database_name, prjpath, rapid_gutter_saved_path):
                     AND `坡高max`<0
                     ORDER BY 
                        id ASC;'''
-            um.cursor.execute(sql)
+            try:
+                um.cursor.execute(sql)
+            except pymysql.err.ProgrammingError as err:
+                err_list.append("set_rapid_gutter_a-pymysql.err.ProgrammingError: {0}".format(err))
+                return [[''], [err_list]]
             data_dic_list = um.cursor.fetchall()  # 第1级段落
             print(f'data_dic_list:{data_dic_list}')
             if len(data_dic_list) == 0:
@@ -1749,6 +1758,8 @@ def set_rapid_gutter_b(database_name, prjpath, rapid_gutter_saved_path):
             outputfile = open(rapid_gutter_saved_path, 'w')
             outputfile.write(str(list(res_rapid_gutter_b_list[0].keys())))
             outputfile.write('\n')
+        except AttributeError:
+            pass
         except FileNotFoundError:
             err_txt = f'{rapid_gutter_saved_path}文件不存在，请检查'
             err_list.append(err_txt)
@@ -1848,19 +1859,33 @@ def creatMysqlSlopeProtecTypeTable(databaseName):
             PRIMARY KEY (`id`)
             ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=0"""
         um.cursor.execute(sql)
-        slopedataForTable = ((1, 0, 100000, -5, -1, 1, 1, 1, 10, -3, 0, -3, 0, '', '填方喷播植草灌护坡'),
-                             (2, 0, 100000, -5, -1, 1, 10, 1, 10, -8, -0, -8, -3, '', '填方方格网植草护坡'),
-                             (3, 0, 100000, -5, -1, 1, 10, 1, 10, -60, -0, -60, -8, '', '填方拱形骨架衬砌护坡'),
-                             (4, 0, 100000, 0.5, 1.5, 1, 10, 1, 10, 0, 4, 0, 4, '', '挖方喷播植草护坡'),
-                             (5, 0, 100000, 0.5, 1.5, 1, 10, 1, 10, 0, 10, 4, 10, '', 'CF网植草防护'),
-                             (6, 0, 100000, 0.5, 1.5, 1, 2, 2, 2, 0, 20, 10, 21, '', '挂双网喷射有机基材'),
-                             (7, 0, 100000, 0.1, 1.5, 1, 3, 3, 3, 0, 30, 20, 31, '', '锚杆框架梁植草防护'),
-                             (8, 0, 100000, 0.1, 1.5, 1, 10, 4, 10, 0, 100, 30, 100, '', '深挖路基'),
-                             (9, 0, 100000, 1.5, 9999, 1, 10, 1, 10, 0, 100, 0, 100, '', '特殊挖方边坡'),
-                             (10, 0, 100000, -0.3, -0.01, 1, 1, 1, 2, -15, -1, -15, -1, '', '路肩墙'),
-                             (11, 0, 100000, -0.3, -0.01, 1, 1, 1, 2, -1, 0, -1, -0, '', '护肩'),
-                             (12, 0, 100000, -0.3, -0.01, 2, 10, 2, 10, -14, -2, -34, 0, '', '路堤墙'),
-                             (13, 0, 100000, -0.3, -0.01, 2, 10, 2, 10, -2, -1, -100, -0, '', '护脚'))
+        # 贵州院防护类型
+        # slopedataForTable = ((1, 0, 100000, -5, -1, 1, 1, 1, 10, -3, 0, -3, 0, '', '填方喷播植草灌护坡'),
+        #                      (2, 0, 100000, -5, -1, 1, 10, 1, 10, -8, -0, -8, -3, '', '填方方格网植草护坡'),
+        #                      (3, 0, 100000, -5, -1, 1, 10, 1, 10, -60, -0, -60, -8, '', '填方拱形骨架衬砌护坡'),
+        #                      (4, 0, 100000, 0.5, 1.5, 1, 10, 1, 10, 0, 4, 0, 4, '', '挖方喷播植草护坡'),
+        #                      (5, 0, 100000, 0.5, 1.5, 1, 10, 1, 10, 0, 10, 4, 10, '', 'CF网植草防护'),
+        #                      (6, 0, 100000, 0.5, 1.5, 1, 2, 2, 2, 0, 20, 10, 21, '', '挂双网喷射有机基材'),
+        #                      (7, 0, 100000, 0.1, 1.5, 1, 3, 3, 3, 0, 30, 20, 31, '', '锚杆框架梁植草防护'),
+        #                      (8, 0, 100000, 0.1, 1.5, 1, 10, 4, 10, 0, 100, 30, 100, '', '深挖路基'),
+        #                      (9, 0, 100000, 1.5, 9999, 1, 10, 1, 10, 0, 100, 0, 100, '', '特殊挖方边坡'),
+        #                      (10, 0, 100000, -0.3, -0.01, 1, 1, 1, 2, -15, -1, -15, -1, '', '路肩墙'),
+        #                      (11, 0, 100000, -0.3, -0.01, 1, 1, 1, 2, -1, 0, -1, -0, '', '护肩'),
+        #                      (12, 0, 100000, -0.3, -0.01, 2, 10, 2, 10, -14, -2, -34, 0, '', '路堤墙'),
+        #                      (13, 0, 100000, -0.3, -0.01, 2, 10, 2, 10, -2, -1, -100, -0, '', '护脚'))
+
+        # 云南院防护类型
+        slopedataForTable = ((1, 0, 100000, -5, -1, 1, 1, 1, 10, -4, 0, -4, 0, '', '三维网植被网护坡'),
+                             (2, 0, 100000, -5, -1, 1, 10, 1, 10, -60, -0, -60, -4, '', '填方拱形骨架衬砌护坡'),
+                             (3, 0, 100000, 0.5, 1.5, 1, 10, 1, 10, 0, 3, 0, 3, '', '挖方喷播植草护坡'),
+                             (4, 0, 100000, 0.5, 1.5, 1, 2, 1, 2, 0, 20, 4, 21, '', '挂双网喷射有机基材'),
+                             (5, 0, 100000, 0.1, 1.5, 1, 3, 3, 3, 0, 30, 20, 31, '', '锚杆框架梁植草防护'),
+                             (6, 0, 100000, 0.1, 1.5, 1, 10, 4, 10, 0, 100, 30, 100, '', '深挖路基'),
+                             (7, 0, 100000, 1.5, 9999, 1, 10, 1, 10, 0, 100, 0, 100, '', '特殊挖方边坡'),
+                             (8, 0, 100000, -0.3, -0.01, 1, 1, 1, 2, -15, -1, -15, -1, '', '路肩墙'),
+                             (9, 0, 100000, -0.3, -0.01, 1, 1, 1, 2, -1, 0, -1, -0, '', '护肩'),
+                             (10, 0, 100000, -0.3, -0.01, 2, 10, 2, 10, -14, -2, -34, 0, '', '路堤墙'),
+                             (11, 0, 100000, -0.3, -0.01, 2, 10, 2, 10, -2, -1, -100, -0, '', '护脚'))
         sql = "insert into settheprotectiongtypeofslope values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"
         um.cursor.executemany(sql, slopedataForTable)
     print('settheprotectiongtypeofslope表创建成功V1.0')
