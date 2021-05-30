@@ -127,5 +127,8 @@ if __name__ == "__main__":
     # [line_new.append(i) for i in xya_list if not i in line_new]
     # print(line_new)
 
-    line_new = xya_list[0:2]
-    print(line_new)
+    # line_new = xya_list[0:2]
+    # print(line_new)
+
+    xya_list = xya_list[1:3]
+    print(xya_list)

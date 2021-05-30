@@ -95,7 +95,6 @@ def grop_hdms_lines(hdm_data_path, layer_name_zxx='图层中心线', layer_name=
         right_line = []  # right_line =[[x,y,z],[x,y,z]...]
         regx_x = f'{layer_name}.+x=(\d+\.?\d+)\s*y=(\d+\.?\d+)\s*z=(\d+\.?\d+)'
         separated_x_tuple = re.findall(regx_x, hdm_xyz_list, re.MULTILINE)  # 分离式路基中心线X坐标
-
         regx_x = f'{layer_name_zxx}.+x=(\d+\.?\d+)\s*y=(\d+\.?\d+)\s*z=(\d+\.?\d+)'
         zxx_x_tuple = re.findall(regx_x, hdm_xyz_list, re.MULTILINE)  # 路基中心线X坐标
         regx_line = roadglobal.regx_exclude_str(layer_name_zxx, layer_name)
@@ -250,8 +249,11 @@ def del_drainage_outside_frame(lines):
     # 删除断面中水沟衬砌线
     '''
     1、删除垫层，挡墙以下，X方向与挡墙存在交集
-    2、识别边沟、盖板
-        2.1一条线中含边坡，水沟内外框，利用X值单调性来删除水沟外框（内框底标高要高于外框）
+    2、边沟折线处理，边沟折线范围盖板删除
+    3、识别边沟、盖板
+        2.1如果有一线中，水沟设计线与衬砌线同时存在，那他们X值的单调性不同，一条线中含边坡，水沟内外框，利用X值单调性来删除水沟外框（内框底标高要高于外框）
+            水沟衬砌线与边坡线直接相连（目前不支持）
+            水沟内框线与边坡直接相连（支持）
             ++++++0---
             ---0++++++
             2.1.2内框、外框连到一起的水沟;
@@ -259,7 +261,7 @@ def del_drainage_outside_frame(lines):
                 0++++++0---
                 +++++
                 起点在+-分界点时，保留，其它情况同两边+或-
-        2.3边沟折线处理，边沟折线范围盖板删除
+
 
         2.4内框、外框分开的水沟，多条线，利用X值单调性来判断内框和外框
                 +++++++++++
@@ -267,35 +269,96 @@ def del_drainage_outside_frame(lines):
                     +++
     :return:
     '''
-    # lines = []
+    err_list = []
     for line in lines:
-        # -2,2分别表示X值递减、递增；-1,1分别表示垂直递减、垂直递增。
-        i_change_index_list = [[0, 0]]  # [X值递减或递增，i值]
-        x_direction = [0]  # X变化方向为x_direction时，保留，其它删除
-
+        # 如果有一线中，水沟设计线与衬砌线同时存在，那他们X值的单调性不同，-2,2分别表示X值递减、递增；-1,1分别表示垂直递减、垂直递增。
+        i_change_index_list = [[0, 0, 0]]  # [X值递减或递增，i_start,i_end]
+        data_inner_outer_frame = [[0, 0, 0, 0], [0, 0, 0, 0]]  # [-2或2,i_start_in_line,i_end_in_line,min_y] 表示
+        x_direction = 0
+        # if line == [[645.9361, 82.8988, 0.0], [644.6361, 82.8988, -2]]:
+        #     st = 1
         for i in range(1, len(line)):
             if line[i][0] > line[i-1][0]:
                 line[i][2] = 2
                 if i_change_index_list[-1][0] != line[i][2]:
-                    i_change_index_list.append([line[i][2], i])
+                    i_change_index_list[-1][-1] = i-2
+                    i_change_index_list.append([line[i][2], i-1, 0])
+                    if i > 1:
+                        if line[i-1][1]-line[i-2][1] > 0:
+                            x_direction = line[i][2]
+                        else:
+                            x_direction = -line[i][2]
+                    else:
+                        pass
             elif line[i][0] < line[i-1][0]:
                 line[i][2] = -2
                 if i_change_index_list[-1][0] != line[i][2]:
-                    i_change_index_list.append([line[i][2], i])
+                    i_change_index_list[-1][-1] = i - 2
+                    i_change_index_list.append([line[i][2], i-1, 0])
+                    if i > 1:
+                        if line[i-1][1]-line[i-2][1] > 0:
+                            x_direction = line[i][2]
+                        else:
+                            x_direction = -line[i][2]
+                    else:
+                        pass
             elif line[i][1] > line[i-1][1]:
                 line[i][2] = 1
             elif line[i][1] < line[i-1][1]:
                 line[i][2] = -1
-                if x_direction[0] != -2 or x_direction != 2:
-                    x_direction[0] = i_change_index_list[-1][0]
+                # if x_direction[0] != -2 or x_direction != 2:
+                #     x_direction[0] = i_change_index_list[-1][0]
+        i_change_index_list[-1][-1] = i
+        # print(f'line:{line}')
+        # print(f'i_change_index_list:{i_change_index_list}')
+        # print(f'x_direction:{x_direction}')
+        # 以下区分水沟设计线与衬砌线。
+        line_origin = copy.deepcopy(line)
+        for i_change_index in i_change_index_list:
+            if i_change_index[0] == x_direction and x_direction != 0:
+                line = line[i_change_index[1]:(i_change_index[2]+1)]
+                break
+            if i_change_index == i_change_index_list[-1] and x_direction != 0:
+                line = []
+        print(f'line_origin:{line_origin}')
         print(f'line:{line}')
         print(f'i_change_index_list:{i_change_index_list}')
         print(f'x_direction:{x_direction}')
+        # if len(i_change_index_list) > 4:
+        #     err_txt = f'del_drainage_outside_frame-直线{line}中存在多个环形，请检查数据。'
+        #     err_list.append(err_txt)
+        # elif len(i_change_index_list) == 4:
+        #     data_inner_outer_frame[0][0] = i_change_index_list[2][0]
+        #     data_inner_outer_frame[0][1] = i_change_index_list[2][1]
+        #     data_inner_outer_frame[0][2] = i_change_index_list[3][1]-1
+        # elif len(i_change_index_list) == 3:
+        #     data_inner_outer_frame[0][0] = i_change_index_list[2][0]
+        #     data_inner_outer_frame[0][1] = i_change_index_list[2][1]
+        #     data_inner_outer_frame[0][2] = i_change_index_list[3][1]-1
+
+
+
+
+
+
+def distinguish_a_shape_in_a_line(line, shape_filters='default'):
+
+    if shape_filters == 'default':  # 挡墙判定条件
+        filter1 = ['height1<0', '0==gradient1']
+        filter2 = ['width2!=0', 'height2==0']
+        filter3 = ['height3<0', '0<=abs(gradient3)<=5']
+        filter4 = ['width4!=0', '5<=abs(gradient4)<=9999']
+        filter5 = ['height3>0', '0<=abs(gradient3)<=5']
+        filter6 = ['width6*width2>0', 'height6==0']
+        filter7 = ['height7>0', '0==gradient7']
+        filters = [filter1, filter2, filter3, filter4, filter5, filter6, filter7]
+    else:
+        filters = shape_filters
 
 
 if __name__ == "__main__":
-    # hdm_data_path = r'C:\Users\29735\Desktop\s.txt'
-    hdm_data_path = r'C:\Users\Administrator.DESKTOP-95R7ULF\Desktop\s.txt'
+    hdm_data_path = r'C:\Users\29735\Desktop\s.txt'
+    # hdm_data_path = r'C:\Users\Administrator.DESKTOP-95R7ULF\Desktop\s.txt'
     layer_name = '图层分离式路基中心线'
     layer_name_zxx = '图层中心线'
     hdms_lines = grop_hdms_lines(hdm_data_path)
