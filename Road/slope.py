@@ -92,7 +92,7 @@ if __name__ == "__main__":
         slopefilepath_list = prjpath.split('\\')
         regx = r'(.+)(?=\.\w+)'
         prjname = re.findall(regx, slopefilepath_list[-1])[0]
-        prjname = prjname.replace('+', '')
+        prjname = prjname.replace('+', '').replace('.', '').replace(':', '')
         try:
             prjname += '_'+gui_confirm.gui_input('请输入项目名称')
             print(f'prjname:{prjname}')
@@ -122,7 +122,7 @@ if __name__ == "__main__":
         road.creatMysqlSlopeTable(prjname)
         for chainage in chainages:
             road.insertDataFrom3drToTableSlope(prjpath, chainage, prjname)
-        road.creatMysqlSlopeProtecTypeTable(prjname)
+        road.creatMysqlSlopeProtecTypeTable(prjname, roadglobal.protection_type)
 
         # 四、输出分组边坡段落及必要参数
         # （['起点', '止点', '长度', '左右侧', '第i级', 'S坡度', '位于边沟左右侧', '防护类型', '最大级数max', '坡高max', '坡高min', '坡面面积']）

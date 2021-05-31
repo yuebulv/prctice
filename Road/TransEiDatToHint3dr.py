@@ -83,7 +83,7 @@ def trans3DdataTo3drFile(get3DdataFromDatfile,path_3drsaved):   # 2 将逐桩横
                     dist_3dr=((Hdmlist[0]-key_design_xyz[0])**2+(Hdmlist[1]-key_design_xyz[1])**2)**0.5
                     dist_3dr = round(dist_3dr, 3)
                     if j ==0:
-                        dist_3dr=-dist_3dr
+                        dist_3dr = -dist_3dr
                     file_3dr.write(str(dist_3dr) + '\t'+str(Hdmlist[2])+'\t')
                 file_3dr.write('\n')
             file_3dr.write('\n')

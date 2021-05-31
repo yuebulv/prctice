@@ -94,41 +94,8 @@ class Stats:
 
 
 
-
-
-
 if __name__ == "__main__":
-    mylist = [1, 2, 2, 2, 2, 3, 3, 3, 4, 4, 4, 4]
-    # myset = set(mylist)
-    # for item in myset:
-    #     print("the %d has found %d" % (item, mylist.count(item)))
+    varurl = 'https://gw.dushu.io/r/34440a483c1c'
+    varurl = varurl.replace('.', '').replace('/', '')
+    print(varurl)
 
-    from collections import Counter
-    # a=Counter([1,2,2,2,2,3,3,3,4,4,4,4])
-    # print(a)
-    # print(type(a))
-
-    # xya_list = [[1,2],[1,2],[1,3],[1,2],[1,5]]
-    # a = Counter(xya_list)
-    # #
-    # # a = xya_list.count([1,2])
-    # print(a)
-
-    # set_list = set(xya_list)
-    # print(set_list)
-    # print(type(set_list))
-
-    # xya_list = [[1, 2], [1, 2], [1, 3], [1, 2], [1, 5]]
-    # set_list = set(xya_list)
-    # print(set_list)
-
-    line_new = []
-    xya_list = [[1, 2], [1, 2], [1, 3], [1, 2], [1, 5]]
-    # [line_new.append(i) for i in xya_list if not i in line_new]
-    # print(line_new)
-
-    # line_new = xya_list[0:2]
-    # print(line_new)
-
-    xya_list = xya_list[1:3]
-    print(xya_list)
