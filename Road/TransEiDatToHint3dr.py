@@ -76,7 +76,18 @@ def trans3DdataTo3drFile(get3DdataFromDatfile,path_3drsaved):   # 2 将逐桩横
             for j in range(0,2):
                 file_3dr.write(TollNum_HdmPoints[j]+'\t')
                 regx = r'((?:\d+\.\d+ ){3}\d)[\n\r]?'
-                HdmPoint_xyz = re.findall(regx, HdmPoints_xyz[j], re.MULTILINE)  # 左右侧横断面三维坐标
+
+                if float(key[0]) == 400 :
+                    print(1)
+
+                if float(TollNum_HdmPoints[j]) == 0:  # 解决左侧或右侧没有横断面坐标的情况
+                    HdmPoint_xyz = ''
+                else:
+                    try:
+                        HdmPoint_xyz = re.findall(regx, HdmPoints_xyz[j], re.MULTILINE)  # 左右侧横断面三维坐标
+                    except IndexError:
+                        HdmPoint_xyz = re.findall(regx, HdmPoints_xyz[0], re.MULTILINE)  # 左右侧横断面三维坐标
+                # HdmPoint_xyz = re.findall(regx, HdmPoints_xyz[j], re.MULTILINE)  # 左右侧横断面三维坐标
                 for Hdmlist in HdmPoint_xyz:
                     Hdmlist=Hdmlist.split( )
                     Hdmlist=list(map(float,Hdmlist))
@@ -120,7 +131,20 @@ def TransEiDatToHintTf(get3DdataFromDatfile, path_tfsaved, path_EiAre):
         Tflist[0] = key[0]
         for j in range(0, 2):
             regx = r'((?:\d+\.\d+ ){3}\d)[\n\r]?'
-            HdmPoint_xyz = re.findall(regx, HdmPoints_xyz[j], re.MULTILINE)  # 左右侧横断面三维坐标
+
+            try:
+                tttt = HdmPoints_xyz[j]
+            except IndexError:
+                print(1)
+
+            if float(TollNum_HdmPoints[j]) == 0:  # 解决左侧或右侧没有横断面坐标的情况
+                HdmPoint_xyz = ''
+            else:
+                try:
+                    HdmPoint_xyz = re.findall(regx, HdmPoints_xyz[j], re.MULTILINE)  # 左右侧横断面三维坐标
+                except IndexError:
+                    HdmPoint_xyz = re.findall(regx, HdmPoints_xyz[0], re.MULTILINE)  # 左右侧横断面三维坐标
+            # HdmPoint_xyz = re.findall(regx, HdmPoints_xyz[j], re.MULTILINE)  # 左右侧横断面三维坐标
             UpSlopeStatus = 0
             list_dist_3dr = []
             list_high = []

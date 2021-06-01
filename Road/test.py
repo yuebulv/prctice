@@ -95,7 +95,10 @@ class Stats:
 
 
 if __name__ == "__main__":
-    varurl = 'https://gw.dushu.io/r/34440a483c1c'
-    varurl = varurl.replace('.', '').replace('/', '')
-    print(varurl)
+    # varurl = 'https://gw.dushu.io/r/34440a483c1c'
+    # varurl = varurl.replace('.', '').replace('/', '')
+    # print(varurl)
 
+    a = [1, 2, 3]
+    a =[[], a]
+    print(a)
