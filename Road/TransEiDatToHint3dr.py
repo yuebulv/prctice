@@ -76,10 +76,6 @@ def trans3DdataTo3drFile(get3DdataFromDatfile,path_3drsaved):   # 2 将逐桩横
             for j in range(0,2):
                 file_3dr.write(TollNum_HdmPoints[j]+'\t')
                 regx = r'((?:\d+\.\d+ ){3}\d)[\n\r]?'
-
-                if float(key[0]) == 400 :
-                    print(1)
-
                 if float(TollNum_HdmPoints[j]) == 0:  # 解决左侧或右侧没有横断面坐标的情况
                     HdmPoint_xyz = ''
                 else:
@@ -131,12 +127,6 @@ def TransEiDatToHintTf(get3DdataFromDatfile, path_tfsaved, path_EiAre):
         Tflist[0] = key[0]
         for j in range(0, 2):
             regx = r'((?:\d+\.\d+ ){3}\d)[\n\r]?'
-
-            try:
-                tttt = HdmPoints_xyz[j]
-            except IndexError:
-                print(1)
-
             if float(TollNum_HdmPoints[j]) == 0:  # 解决左侧或右侧没有横断面坐标的情况
                 HdmPoint_xyz = ''
             else:

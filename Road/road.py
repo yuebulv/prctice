@@ -633,7 +633,7 @@ def insertDataFrom3drToTableSlope(prjpath, chainage, prjname):
     tfpath = road.findXPathFromPrj(prjpath, 'tf')
     tfDatas = road.getDataFromTf(tfpath, chainage)
     for tfData_temp in tfDatas:
-        regx = r'\w+.?\w+'
+        regx = r'\S+'
         tfData = re.findall(regx, tfData_temp, re.MULTILINE)
         # print(tfData[0], tfData[4], tfData[5])
     try:
