@@ -337,37 +337,88 @@ def del_drainage_outside_frame(lines):
         #     data_inner_outer_frame[0][2] = i_change_index_list[3][1]-1
 
 
-
-
-
-
-def distinguish_a_shape_in_a_line(line, shape_filters='default'):
-
-    if shape_filters == 'default':  # 挡墙判定条件
-        filter1 = ['height1<0', '0==gradient1']
-        filter2 = ['width2!=0', 'height2==0']
-        filter3 = ['height3<0', '0<=abs(gradient3)<=5']
-        filter4 = ['width4!=0', '5<=abs(gradient4)<=9999']
-        filter5 = ['height3>0', '0<=abs(gradient3)<=5']
-        filter6 = ['width6*width2>0', 'height6==0']
-        filter7 = ['height7>0', '0==gradient7']
+def distinguish_a_shape_in_a_line(line_origin, is_closed=True, shape_filters='default'):
+    '''
+    功能：识别直线line_origin中，形状为shape_filters线段，返回[[1, 8], [err_list]]
+    :param line_origin:
+    :param is_closed:True时，对直线起止点相接进行循环判断
+    :param shape_filters:
+    :return:[[1, 8], [err_list]]
+            或者
+            [[[3, 8], [0, 1]], [err_list]] （闭合线段有可能）
+    '''
+    err_list = []
+    if shape_filters == 'default':  # 带盖板边沟内框判定条件
+        filter1 = ['height[1]<0', 'width[1]==0']
+        filter2 = ['width[2]!=0', 'height[2]==0']
+        filter3 = ['height[3]<0', '0<=abs(gradient[3])<=5']
+        filter4 = ['width[4]!=0', '5<=abs(gradient[4])<=9999']
+        filter5 = ['height[5]>0', '0<=abs(gradient[5])<=5']
+        filter6 = ['width[6]*width[2]>0', 'height[6]==0']
+        filter7 = ['height[7]>0', 'width[7]==0']
         filters = [filter1, filter2, filter3, filter4, filter5, filter6, filter7]
     else:
         filters = shape_filters
+    line = copy.deepcopy(line_origin)
+    len_origin_line = len(line_origin)
+    if is_closed:
+        line.extend(line_origin[0:len(filters)])
+    height = {}
+    width = {}
+    gradient = {}
+    if len_origin_line > len(filters):
+        for j in range(0, len_origin_line-len(filters)):
+            m = 1
+            for i in range(j+1, len(filters)+j+1):
+                height[m] = line[i][1] - line[i-1][1]
+                width[m] = line[i][0] - line[i-1][0]
+                try:
+                    gradient[m] = width[m]/height[m]
+                except ZeroDivisionError:
+                    gradient[m] = 9999
+                m += 1
+            is_shape = True
+            for filter0 in filters:
+                if not is_shape:
+                    break
+                for formula in filter0:
+                    if eval(formula):
+                        pass
+                    else:
+                        is_shape = False
+                        break
+            if is_shape:
+                if j+len(filters)+1 <= len_origin_line:
+                    return [[j, j+len(filters)], err_list]
+                else:
+                    return [[[j, len_origin_line-1], [0, j + len(filters) - len_origin_line]], err_list]
+    return [[], err_list]
+
+
+def is_line_x_in_x1_to_x2(line, x1, x2):
+    # 功能：判断line的x坐标是不是全部在x1和x2之间
+    if len(line) > 0:
+        for point_xyz in line:
+            try:
+                x_min = min(x_min, point_xyz[0])
+                x_max = max(x_max, point_xyz[0])
+            except NameError:
+                x_min = point_xyz[0]
+                x_max = point_xyz[0]
+        if x_min >= min(x1, x2) and x_max <= max(x1, x2):
+            return True
+        else:
+            return False
+    else:
+        return True
 
 
 if __name__ == "__main__":
-    hdm_data_path = r'C:\Users\29735\Desktop\s.txt'
-    # hdm_data_path = r'C:\Users\Administrator.DESKTOP-95R7ULF\Desktop\s.txt'
+    # hdm_data_path = r'C:\Users\29735\Desktop\s.txt'
+    hdm_data_path = r'C:\Users\Administrator.DESKTOP-95R7ULF\Desktop\s.txt'
     layer_name = '图层分离式路基中心线'
     layer_name_zxx = '图层中心线'
     hdms_lines = grop_hdms_lines(hdm_data_path)
-
-    # print(hdms_lines[0])
-    # print(hdms_lines[0]['bk0+130']['left_lines'])
-    # print(hdms_lines[0]['bk0+130']['right_lines'])
-    # print(len(hdms_lines[0]['bk0+130']['right_lines']))
-    # tagging_wall_in_hdm_xyz(hdms_lines[0]['bk0+130']['right_lines'][0])
 
     # 1 墙背线替代挡墙，删除垫层
     for hdm in hdms_lines[0]:   # 每个桩号
@@ -414,15 +465,40 @@ if __name__ == "__main__":
                         j_correct += 1
                     break  # 默认断面左侧或者右侧只有一个挡墙
 
-    # 2 删除断面中水沟衬砌线
+    # 2 修改带盖板边沟|_  _| 为 | |，以便转为dat数据
+    #                |_|     |_|
     for hdm in hdms_lines[0]:  # 每个桩号
-        print(f'hdm:{hdm}')
         for key_left_Or_right in ['left_lines', 'right_lines']:
-            for i in range(len(hdms_lines[0][hdm][key_left_Or_right])):
-                # line_xyz = hdms_lines[0][hdm][key_left_Or_right][i]  # 每条设计线
+            for index_line in range(len(hdms_lines[0][hdm][key_left_Or_right])):
+                line_xyz = hdms_lines[0][hdm][key_left_Or_right][index_line]  # 每条设计线
+                index_drain = distinguish_a_shape_in_a_line(line_xyz, is_closed=True, shape_filters='default')
+                if len(index_drain[0]) == 2:  # 判定为带盖板边沟
+                    try:
+                        start_x_drain = min(line_xyz[index_drain[0][0][0]][0], line_xyz[index_drain[0][0][1]][0],
+                                            line_xyz[index_drain[0][1][0]][0], line_xyz[index_drain[0][1][1]][0])
+                        end_x_drain = max(line_xyz[index_drain[0][0][0]][0], line_xyz[index_drain[0][0][1]][0],
+                                            line_xyz[index_drain[0][1][0]][0], line_xyz[index_drain[0][1][1]][0])
+                    except TypeError:
+                        start_x_drain = min(line_xyz[index_drain[0][0]][0], line_xyz[index_drain[0][1]][0])
+                        end_x_drain = max(line_xyz[index_drain[0][0]][0], line_xyz[index_drain[0][1]][0])
+                    print(f'index_drain:{index_drain}')
+                    print(f'start_x_drain:{start_x_drain}')
+                    print(f'end_x_drain:{end_x_drain}')
+                    # 删除边沟盖板
+                    for index_line_del_cover in range(len(hdms_lines[0][hdm][key_left_Or_right])):
+                        if index_line_del_cover != index_line:
+                            is_in = is_line_x_in_x1_to_x2(hdms_lines[0][hdm][key_left_Or_right][index_line_del_cover],
+                                                          start_x_drain, end_x_drain)
+                            if is_in:
+                                # print('y', hdms_lines[0][hdm][key_left_Or_right][index_line_del_cover])
+                                hdms_lines[0][hdm][key_left_Or_right][index_line_del_cover] = []
+                                # print('h', hdms_lines[0][hdm][key_left_Or_right][index_line_del_cover])
+                    # 2 修改带盖板边沟|_  _| 为 | |，以便转为dat数据
+                    #                |_|     |_|
 
-                del_drainage_outside_frame(hdms_lines[0][hdm][key_left_Or_right])
-                # print(f'ss:{hdms_lines[0][hdm][key_left_Or_right][i]}')
+                # 2 删除断面中水沟衬砌线
+                # del_drainage_outside_frame(hdms_lines[0][hdm][key_left_Or_right])
+
 
 
 
