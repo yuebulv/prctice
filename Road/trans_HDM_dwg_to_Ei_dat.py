@@ -29,7 +29,7 @@
         9、输出dat
 
 
-            1		        整幅路基
+    1		        整幅路基
     1	中央分隔带	整幅路基
     1		        整幅路基
     1	路缘带	    整幅路基
@@ -52,7 +52,8 @@ import roadglobal
 import re
 import operator
 import copy
-
+import numpy as np
+import sys
 
 def grop_hdms_lines(hdm_data_path, layer_name_zxx='图层中心线', layer_name='图层分离式路基中心线'):
     '''
@@ -269,14 +270,13 @@ def del_drainage_outside_frame(lines):
                     +++
     :return:
     '''
+    res_lines = []
     err_list = []
     for line in lines:
         # 如果有一线中，水沟设计线与衬砌线同时存在，那他们X值的单调性不同，-2,2分别表示X值递减、递增；-1,1分别表示垂直递减、垂直递增。
         i_change_index_list = [[0, 0, 0]]  # [X值递减或递增，i_start,i_end]
         data_inner_outer_frame = [[0, 0, 0, 0], [0, 0, 0, 0]]  # [-2或2,i_start_in_line,i_end_in_line,min_y] 表示
         x_direction = 0
-        # if line == [[645.9361, 82.8988, 0.0], [644.6361, 82.8988, -2]]:
-        #     st = 1
         for i in range(1, len(line)):
             if line[i][0] > line[i-1][0]:
                 line[i][2] = 2
@@ -324,17 +324,9 @@ def del_drainage_outside_frame(lines):
         print(f'line:{line}')
         print(f'i_change_index_list:{i_change_index_list}')
         print(f'x_direction:{x_direction}')
-        # if len(i_change_index_list) > 4:
-        #     err_txt = f'del_drainage_outside_frame-直线{line}中存在多个环形，请检查数据。'
-        #     err_list.append(err_txt)
-        # elif len(i_change_index_list) == 4:
-        #     data_inner_outer_frame[0][0] = i_change_index_list[2][0]
-        #     data_inner_outer_frame[0][1] = i_change_index_list[2][1]
-        #     data_inner_outer_frame[0][2] = i_change_index_list[3][1]-1
-        # elif len(i_change_index_list) == 3:
-        #     data_inner_outer_frame[0][0] = i_change_index_list[2][0]
-        #     data_inner_outer_frame[0][1] = i_change_index_list[2][1]
-        #     data_inner_outer_frame[0][2] = i_change_index_list[3][1]-1
+        if len(line)>0:
+            res_lines.append(line)
+    return [res_lines, err_list]
 
 
 def distinguish_a_shape_in_a_line(line_origin, is_closed=True, shape_filters='default'):
@@ -413,6 +405,128 @@ def is_line_x_in_x1_to_x2(line, x1, x2):
         return True
 
 
+def modify_a_shape_in_a_line(line_origin, is_closed=True, shape_filters='default'):
+    '''
+    功能：修改带盖板边沟|_  _| 为 | |，以便转为dat数据
+                      |_|     |_|
+    :param line_origin:
+    :param is_closed:True时，对直线起止点相接进行循环判断
+    :param shape_filters:
+    :return:[[1, 8], [err_list]]
+    '''
+    err_list = []
+    if shape_filters == 'default':  # 带盖板边沟内框判定条件
+        filter1 = ['height[1]<0', 'width[1]==0']
+        filter2 = ['width[2]!=0', 'height[2]==0']
+        filter3 = ['height[3]<0', '0<=abs(gradient[3])<=5']
+        filter4 = ['width[4]!=0', '5<=abs(gradient[4])<=9999']
+        filter5 = ['height[5]>0', '0<=abs(gradient[5])<=5']
+        filter6 = ['width[6]*width[2]>0', 'height[6]==0']
+        filter7 = ['height[7]>0', 'width[7]==0']
+        filters = [filter1, filter2, filter3, filter4, filter5, filter6, filter7]
+    else:
+        filters = shape_filters
+    line = copy.deepcopy(line_origin)
+    len_origin_line = len(line_origin)
+    if is_closed:
+        line.extend(line_origin[0:len(filters)])
+    height = {}
+    width = {}
+    gradient = {}
+    if len_origin_line > len(filters):
+        for j in range(0, len_origin_line-len(filters)):
+            m = 1
+            for i in range(j+1, len(filters)+j+1):
+                height[m] = line[i][1] - line[i-1][1]
+                width[m] = line[i][0] - line[i-1][0]
+                try:
+                    gradient[m] = width[m]/height[m]
+                except ZeroDivisionError:
+                    gradient[m] = 9999
+                m += 1
+            is_shape = True
+            for filter0 in filters:
+                if not is_shape:
+                    break
+                for formula in filter0:
+                    if eval(formula):
+                        pass
+                    else:
+                        is_shape = False
+                        break
+            if is_shape:
+                if j+len(filters)+1 <= len_origin_line:
+                    index_list = list(range(j, j+len(filters)+1))
+                    # return [[j, j+len(filters)], err_list]
+                else:
+                    index_list = list(range(j, len_origin_line-1))
+                    index_list.extend(list(range(0, j + len(filters) - len_origin_line)))
+                    # return [[[j, len_origin_line-1], [0, j + len(filters) - len_origin_line]], err_list]
+                line_origin[index_list[2]][1] = line_origin[index_list[0]][1]
+                line_origin[index_list[-3]][1] = line_origin[index_list[-1]][1]
+                index_remove = index_list[0:2]
+                index_remove.extend(index_list[-2:])
+                index_remove.sort(reverse=True)
+                # print(f'修改前line:{line}')
+                for index_temp in index_remove:
+                    del line_origin[index_temp]
+                # print(f'修改后line:{line}')
+                return [line_origin, err_list]
+                # line[index_list[2]][1] = line[index_list[0]][1]
+                # line[index_list[-3]][1] = line[index_list[-1]][1]
+                # index_remove = index_list[0:2]
+                # index_remove.extend(index_list[-2:])
+                # index_remove.sort(reverse=True)
+                # # print(f'修改前line:{line}')
+                # for index_temp in index_remove:
+                #     del line[index_temp]
+                # # print(f'修改后line:{line}')
+                # return [line, err_list]
+    return [line_origin, err_list]
+
+
+def del_point_of_dif_direction_in_line(line):
+    # 功能：删除一条线中，不同方向的点，例如：当前点与前一点X方向不同时，删除当前点
+    if len(line) > 2:
+        j = 1
+        while line[j][0] - line[j-1][0] == 0:
+            j += 1
+        new_line = line[(j-1):(j+1)]
+        for i in range(j+1, len(line)):
+            if (line[i][0] - new_line[-1][0])*(new_line[-1][0] - new_line[-2][0]) > 0:
+                new_line.append(line[i])
+            elif (line[i][0] - new_line[-1][0])*(new_line[-1][0] - new_line[-2][0]) == 0:
+                if line[i][1] != new_line[-1][1] or line[i][0] != new_line[-1][0]:
+                    new_line.append(line[i])
+    else:
+        new_line = line
+    return new_line
+
+
+def mark_road_item_in_line(line, subgrade_width):
+    # 功能：路基设计线line，标注line中的中央分隔带、行车道、路肩、边沟、边坡等，例如[[x, y ,z, 标注]]
+    # line 格式[[x,y,z], [x,y,z]...]
+    # line 中各点从中心线到坡脚排序
+    err_list = []
+    tolerance = 0.01  # 容差范围
+    subgrade_width = abs(subgrade_width)
+    if abs(line[0][0]-line[-1][0])-subgrade_width < -tolerance:
+        err_text = f'mark_road_item_in_line-line:{line},总宽度小于路基宽度：{subgrade_width}'
+        err_list.append(err_text)
+        return [[], err_list]
+    width_to_centre_line = 0
+    road_item_priority = [5, 2, 1, 1, 1, 1, 1, 1]
+    for i in range(1, len(line)):
+        width_to_centre_line += abs(line[i][0]-line[i-1][0])
+        if abs(width_to_centre_line - subgrade_width) <= tolerance:
+            j = i
+            while j != 0:
+                line[j].append[road_item_priority[0]]
+                del road_item_priority[0]
+                j -= 1
+            line[0].append[line[1][-1]]
+
+
 if __name__ == "__main__":
     # hdm_data_path = r'C:\Users\29735\Desktop\s.txt'
     hdm_data_path = r'C:\Users\Administrator.DESKTOP-95R7ULF\Desktop\s.txt'
@@ -464,14 +578,14 @@ if __name__ == "__main__":
                                     j_correct -= 1
                         j_correct += 1
                     break  # 默认断面左侧或者右侧只有一个挡墙
-
     # 2 修改带盖板边沟|_  _| 为 | |，以便转为dat数据
     #                |_|     |_|
     for hdm in hdms_lines[0]:  # 每个桩号
         for key_left_Or_right in ['left_lines', 'right_lines']:
             for index_line in range(len(hdms_lines[0][hdm][key_left_Or_right])):
-                line_xyz = hdms_lines[0][hdm][key_left_Or_right][index_line]  # 每条设计线
+                line_xyz = copy.deepcopy(hdms_lines[0][hdm][key_left_Or_right][index_line])  # 每条设计线
                 index_drain = distinguish_a_shape_in_a_line(line_xyz, is_closed=True, shape_filters='default')
+
                 if len(index_drain[0]) == 2:  # 判定为带盖板边沟
                     try:
                         start_x_drain = min(line_xyz[index_drain[0][0][0]][0], line_xyz[index_drain[0][0][1]][0],
@@ -495,11 +609,68 @@ if __name__ == "__main__":
                                 # print('h', hdms_lines[0][hdm][key_left_Or_right][index_line_del_cover])
                     # 2 修改带盖板边沟|_  _| 为 | |，以便转为dat数据
                     #                |_|     |_|
+                    line_xyz = copy.deepcopy(hdms_lines[0][hdm][key_left_Or_right][index_line])  # 每条设计线
+                    print(f'line_xyz:{line_xyz}')
+                    line_new = modify_a_shape_in_a_line(line_xyz, is_closed=True, shape_filters='default')
+                    hdms_lines[0][hdm][key_left_Or_right][index_line] = line_new[0]
+                    print('修改后line_xyz：', hdms_lines[0][hdm][key_left_Or_right][index_line])
 
-                # 2 删除断面中水沟衬砌线
-                # del_drainage_outside_frame(hdms_lines[0][hdm][key_left_Or_right])
+    # 3 删除断面中水沟衬砌线
+    for hdm in hdms_lines[0]:  # 每个桩号
+        for key_left_Or_right in ['left_lines', 'right_lines']:
+            hdms_lines[0][hdm][key_left_Or_right] = del_drainage_outside_frame(hdms_lines[0][hdm][key_left_Or_right])[0]
+            print(f'hdms_lines[0][hdm]:{hdms_lines[0][hdm]}')
+            #  4 给线段各顶点调整起止顺序，排序，
+            if key_left_Or_right == 'left_lines':
+                x_direction = -2
+            else:
+                x_direction = 2
+            i_x_lines = []
+            sorted_line = []
+            for i_line_sort in range(len(hdms_lines[0][hdm][key_left_Or_right])):
+                # print(f'line-{key_left_Or_right}:{hdms_lines[0][hdm][key_left_Or_right][i_line_sort]}')
+                for point_line_direction in hdms_lines[0][hdm][key_left_Or_right][i_line_sort]:
+                    # print(f'line_direction:{point_line_direction}')
+                    if abs(point_line_direction[-1]) == 2:
+                        if point_line_direction[-1] != x_direction:
+                            hdms_lines[0][hdm][key_left_Or_right][i_line_sort].reverse()
+                        break
+                print(f'line-reverse{key_left_Or_right}:{hdms_lines[0][hdm][key_left_Or_right][i_line_sort]}')
+                i_x_lines.append([i_line_sort, hdms_lines[0][hdm][key_left_Or_right][i_line_sort][0][0]])
+            #  排序
+            if key_left_Or_right == 'left_lines':
+                i_x_lines = sorted(i_x_lines, key=(lambda x: x[1]), reverse=True)
+            else:
+                i_x_lines = sorted(i_x_lines, key=(lambda x: x[1]), reverse=False)
+            print(f'i_x_lines:{i_x_lines}')
+            i_sorted_list = [i_sorted[0] for i_sorted in i_x_lines]
+            print(f'{hdm}{key_left_Or_right}:{hdms_lines[0][hdm][key_left_Or_right]}')
+            #  合并为一条线
+            for i_temp in i_sorted_list:
+                sorted_line.extend(hdms_lines[0][hdm][key_left_Or_right][i_temp])
+            # print(f'sorted_line:{sorted_line}')
+            #  接点处理,根据x的单调性，
+            sorted_line = del_point_of_dif_direction_in_line(sorted_line)
+            print(f'sorted_line:{sorted_line}')
+            hdms_lines[0][hdm][key_left_Or_right] = [sorted_line]
+            if key_left_Or_right == 'left_lines':
+                regx = f'左路基宽\s*=\s*(\d+\.?\d*)'
+            else:
+                regx = f'右路基宽\s*=\s*(\d+\.?\d*)'
+            width_subgrade = re.findall(regx, hdms_lines[0][hdm]['text'], re.MULTILINE)
+            width_subgrade = float(width_subgrade[0])
+            print(f'width_subgrade:{width_subgrade}')
+            #  5 中央分隔带，行车道，路肩，水沟，边坡标注
 
 
+
+    #  5 删除平台截水沟
+
+    #  5 计算坐标Z值
+
+    #  6 生成dat文件
+
+    #  7 生成are文件
 
 
 

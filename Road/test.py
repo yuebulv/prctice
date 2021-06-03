@@ -18,7 +18,7 @@ from operator import itemgetter
 import json
 import gui_confirm
 from tkinter import simpledialog
-
+import numpy as np
 class Stats:
     def __init__(self):
         # 从文件中加载UI定义
@@ -99,4 +99,15 @@ if __name__ == "__main__":
     # varurl = varurl.replace('.', '').replace('/', '')
     # print(varurl)
 
-    pass
+    # a = ['上海市', '云南省', '内蒙古', '四川省', '天津市', '宁夏', '安徽省', '山东省', '山西省']
+
+    # a = [[1, 1], [5, 2], [6, 3], [1, 4], [1, 5], [1, 6], [1, 7]]
+    # b = a[0:2]
+    # print(b)
+
+    j = 4
+    while j != -1:
+        print(j)
+        j -= 1
+
+
