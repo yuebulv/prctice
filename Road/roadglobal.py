@@ -45,6 +45,12 @@ protection_type = ((1, 0, 100000, -5, -1, 1, 1, 1, 10, -4, 0, -4, 0, '', '三维
                      (9, 0, 100000, -0.3, -0.01, 1, 1, 1, 2, -1, 0, -1, -0, '', '护肩'),
                      (10, 0, 100000, -0.3, -0.01, 2, 10, 2, 10, -14, -2, -34, 0, '', '路堤墙'),
                      (11, 0, 100000, -0.3, -0.01, 2, 10, 2, 10, -2, -1, -100, -0, '', '护脚'))
+# 过虑器
+# 1 水沟过虑器
+drainageFilter1 = ['height[1]<0', '0<=abs(gradient[1])<=2']  # 第1条边判定条件
+drainageFilter2 = ['width[2]!=0', '5<=abs(gradient[2])<=9999', 'width[1]*width[2]>=0',]  # 第2条边判定条件
+drainageFilter3 = ['0<height[3]', '0<=abs(gradient[3])<=2', 'width[2]*width[3]>=0']  # 第3条边判定条件
+drain_filter = [drainageFilter1, drainageFilter2, drainageFilter3]  # 必须一条线一个元素
 
 regx_chainage_between_chainage = r'^\w?[Kk]\d+\+\d+(?:.+[\n\r]){2}(?:.+(?:z=0\.0000\ *[\n\r]))+'
 

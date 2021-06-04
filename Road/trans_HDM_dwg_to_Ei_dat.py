@@ -145,9 +145,9 @@ def grop_hdms_lines(hdm_data_path, layer_name_zxx='图层中心线', layer_name=
                         left_line_points.append(list(xyz_point))
                     else:
                         right_line_points.append(list(xyz_point))
-            if left_line_points:
+            if len(left_line_points) > 1:
                 left_line.append(left_line_points)
-            if right_line_points:
+            if len(right_line_points) > 1:
                 right_line.append(right_line_points)
         xyz_line_chainage_dic['left_lines'] = left_line
         xyz_line_chainage_dic['right_lines'] = right_line
@@ -308,6 +308,10 @@ def del_drainage_outside_frame(lines):
                 line[i][2] = -1
                 # if x_direction[0] != -2 or x_direction != 2:
                 #     x_direction[0] = i_change_index_list[-1][0]
+        # try:
+        #     i_change_index_list[-1][-1] = i
+        # except UnboundLocalError:
+        #     print(1)
         i_change_index_list[-1][-1] = i
         # print(f'line:{line}')
         # print(f'i_change_index_list:{i_change_index_list}')
@@ -503,10 +507,25 @@ def del_point_of_dif_direction_in_line(line):
     return new_line
 
 
-def mark_road_item_in_line(line, subgrade_width):
+def del_coincide_point_in_line(line_origin, tolerance=0.01):
+    # 功能：删除一条线中重合的点，距离在tolerance内的为重合点
+    new_line = []
+    if len(line_origin) > 1:
+        new_line.append(line_origin[0])
+        for i in range(1, len(line_origin)):
+            distance = ((line_origin[i][0] - new_line[-1][0]) ** 2 + (line_origin[i][1] - new_line[-1][1]) ** 2) ** 0.5
+            if distance > tolerance:
+                new_line.append(line_origin[i])
+    else:
+        new_line = line_origin
+    return new_line
+
+
+def mark_road_item_in_line(line_origin, subgrade_width):
     # 功能：路基设计线line，标注line中的中央分隔带、行车道、路肩、边沟、边坡等，例如[[x, y ,z, 标注]]
     # line 格式[[x,y,z], [x,y,z]...]
     # line 中各点从中心线到坡脚排序
+    line = copy.deepcopy(line_origin)
     err_list = []
     tolerance = 0.01  # 容差范围
     subgrade_width = abs(subgrade_width)
@@ -515,16 +534,109 @@ def mark_road_item_in_line(line, subgrade_width):
         err_list.append(err_text)
         return [[], err_list]
     width_to_centre_line = 0
-    road_item_priority = [5, 2, 1, 1, 1, 1, 1, 1]
+    road_item_priority = [5, 2, 2, 1, 1, 1, 1, 1]
+    i_platform_omit_type_list = []
     for i in range(1, len(line)):
         width_to_centre_line += abs(line[i][0]-line[i-1][0])
-        if abs(width_to_centre_line - subgrade_width) <= tolerance:
+        if abs(width_to_centre_line - subgrade_width) <= tolerance and len(line[i-1]) == 3:  # 中央分隔带、行车道、路肩标注
             j = i
             while j != 0:
-                line[j].append[road_item_priority[0]]
+                line[j].append(road_item_priority[0])
                 del road_item_priority[0]
                 j -= 1
-            line[0].append[line[1][-1]]
+            line[0].append(line[1][-1])
+        elif width_to_centre_line - subgrade_width >= -tolerance:  # 边沟、边坡等标注
+            try:
+                temp = line[i][3]
+            except IndexError:
+                line_3points = line[i-1:(i+3)]
+                is_drain_list = distinguish_a_shape_in_a_line(line_3points, is_closed=False, shape_filters=roadglobal.drain_filter)
+                # 识别边沟7
+                try:
+                    for i_drain in range(is_drain_list[0][0]+1, is_drain_list[0][1]+1):
+                        line[i-1+i_drain].append(7)
+                except TypeError:
+                    pass
+                except IndexError:
+                    pass
+                try:
+                    temp = line[i][3]
+                except IndexError:  # 识别边坡6 8
+                    width = line[i][0] - line[i-1][0]
+                    height = line[i][1] - line[i-1][1]
+                    try:
+                        gradient = width/height
+                    except ZeroDivisionError:
+                        gradient = 9999
+                    if height > 0 and 0 <= abs(gradient) <= 5:
+                        line[i].append(8)
+                        platform_type = 8
+                    elif height < 0 <= abs(gradient) <= 5:
+                        line[i].append(6)
+                        platform_type = 6
+                    else:  # 平台类型与前一边坡类型一致
+                        try:
+                            line[i].append(platform_type)
+                        except NameError:
+                            i_platform_omit_type_list.append(i)  # 类型未标记的平台
+    for i in i_platform_omit_type_list:
+        j = i+1
+        while j <= len(line):
+            try:
+                line[i].append(line[j][3])
+            except IndexError:
+                pass
+            else:
+                break
+            j += 1
+        try:
+            temp = line[i][3]
+        except IndexError:
+            line[i].append(8)
+    # 删除平台截水沟，水沟两侧最近边坡（非平台）坡度一致时判定为平台截水沟
+    i_drain_list = []
+    switch = True
+    item_and_slope_of_last_point = [0, 9999]  # [6, 坡度]
+    item_and_slope_of_next_point = [0, 9999]
+    for i in range(1, len(line)):
+        if line[i][3] == 7:
+            i_drain_list.append(i)
+        elif len(i_drain_list) > 0:
+            for j in range(i+1, len(line)):
+                width = line[j][0] - line[j - 1][0]
+                height = line[j][1] - line[j - 1][1]
+                try:
+                    slope = width / height
+                except ZeroDivisionError:
+                    slope = 9999
+                if line[j][3] > 5 and slope != 9999:
+                    item_and_slope_of_next_point = [line[j][3], slope]
+                    break
+            if item_and_slope_of_last_point[0] == item_and_slope_of_next_point[0]:  # 判定为平台截水沟
+                for i_drain_del in i_drain_list:
+                    line[i_drain_del] = []
+            i_drain_list = []
+            item_and_slope_of_last_point = [0, 9999]  # [6, 坡度]
+            item_and_slope_of_next_point = [0, 9999]
+        else:
+            width = line[i][0]-line[i-1][0]
+            height = line[i][1]-line[i-1][1]
+            try:
+                slope = width/height
+            except ZeroDivisionError:
+                slope = 9999
+            if line[i][3] > 5 and slope != 9999:
+                item_and_slope_of_last_point = [line[i][3], slope]
+    line_new = []
+    for point in line:
+        if len(point) > 0:
+            line_new.append(point)
+    # 填方水沟外侧衬砌线
+    if line_new[-2][3] == 7:
+        height = line_new[-1][1] - line_new[-2][1]
+        if height == 0:
+            del line_new[-1]
+    return line_new
 
 
 if __name__ == "__main__":
@@ -533,6 +645,9 @@ if __name__ == "__main__":
     layer_name = '图层分离式路基中心线'
     layer_name_zxx = '图层中心线'
     hdms_lines = grop_hdms_lines(hdm_data_path)
+
+    res_path = r'C:\Users\Administrator.DESKTOP-95R7ULF\Desktop\res.txt'
+    res_file = open(res_path, 'w')
 
     # 1 墙背线替代挡墙，删除垫层
     for hdm in hdms_lines[0]:   # 每个桩号
@@ -620,7 +735,7 @@ if __name__ == "__main__":
         for key_left_Or_right in ['left_lines', 'right_lines']:
             hdms_lines[0][hdm][key_left_Or_right] = del_drainage_outside_frame(hdms_lines[0][hdm][key_left_Or_right])[0]
             print(f'hdms_lines[0][hdm]:{hdms_lines[0][hdm]}')
-            #  4 给线段各顶点调整起止顺序，排序，
+            # 4 给线段各顶点调整起止顺序，排序，
             if key_left_Or_right == 'left_lines':
                 x_direction = -2
             else:
@@ -637,7 +752,7 @@ if __name__ == "__main__":
                         break
                 print(f'line-reverse{key_left_Or_right}:{hdms_lines[0][hdm][key_left_Or_right][i_line_sort]}')
                 i_x_lines.append([i_line_sort, hdms_lines[0][hdm][key_left_Or_right][i_line_sort][0][0]])
-            #  排序
+            # 排序
             if key_left_Or_right == 'left_lines':
                 i_x_lines = sorted(i_x_lines, key=(lambda x: x[1]), reverse=True)
             else:
@@ -645,12 +760,14 @@ if __name__ == "__main__":
             print(f'i_x_lines:{i_x_lines}')
             i_sorted_list = [i_sorted[0] for i_sorted in i_x_lines]
             print(f'{hdm}{key_left_Or_right}:{hdms_lines[0][hdm][key_left_Or_right]}')
-            #  合并为一条线
+            # 合并为一条线
             for i_temp in i_sorted_list:
                 sorted_line.extend(hdms_lines[0][hdm][key_left_Or_right][i_temp])
             # print(f'sorted_line:{sorted_line}')
-            #  接点处理,根据x的单调性，
+            # 接点处理,根据x的单调性，
             sorted_line = del_point_of_dif_direction_in_line(sorted_line)
+            # 删除重复点
+            sorted_line = del_coincide_point_in_line(sorted_line, tolerance=0.01)
             print(f'sorted_line:{sorted_line}')
             hdms_lines[0][hdm][key_left_Or_right] = [sorted_line]
             if key_left_Or_right == 'left_lines':
@@ -660,18 +777,23 @@ if __name__ == "__main__":
             width_subgrade = re.findall(regx, hdms_lines[0][hdm]['text'], re.MULTILINE)
             width_subgrade = float(width_subgrade[0])
             print(f'width_subgrade:{width_subgrade}')
-            #  5 中央分隔带，行车道，路肩，水沟，边坡标注
-
-
-
-    #  5 删除平台截水沟
+            # 5 中央分隔带，行车道，路肩，水沟，边坡标注
+            marked_line = mark_road_item_in_line(sorted_line, width_subgrade)
+            print(f'marked_line:{marked_line}')
+            temp_xyz = np.array(marked_line)[:, 0:3].tolist()
+            res_file.write('3q '+str(temp_xyz))
+            res_file.write('\n')
+            temp_xyz = np.array(marked_line)[:, -1].tolist()
+            res_file.write(str(temp_xyz))
+            res_file.write('\n')
+    #  检查6 8同时存在，只有一组7,X单调，只有一个5
 
     #  5 计算坐标Z值
 
     #  6 生成dat文件
 
     #  7 生成are文件
-
+    res_file.close()
 
 
 
