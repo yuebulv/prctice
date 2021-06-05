@@ -639,16 +639,37 @@ def mark_road_item_in_line(line_origin, subgrade_width):
     return line_new
 
 
+def calculate_height_of_point(line_origin, known_point_xyz, known_point_design_height):
+    '''
+    # 功能：已知A/B两点相对高差，已知A点设计标高，求B点设计标高
+    :param line_origin: [[x, y, z], [x, y, z,]...]
+    :param known_point_xyz: [x, y, z]
+    :param known_point_design_height: float
+    :return:line
+    '''
+    line = copy.deepcopy(line_origin)
+    for i in range(len(line)):
+        relative_height = line[i][1] - known_point_xyz[1]
+        height = known_point_design_height + relative_height
+        line[i][2] = height
+        line[i][1] = 0
+    return line
+
 if __name__ == "__main__":
-    # hdm_data_path = r'C:\Users\29735\Desktop\s.txt'
-    hdm_data_path = r'C:\Users\Administrator.DESKTOP-95R7ULF\Desktop\s.txt'
+    # 注意：横断面图中桩号一般无断链信息，所以转为的dat, are文件中桩号也无断链信息，后续需要优化
+    hdm_data_path = r'C:\Users\29735\Desktop\s.txt'
+    res_path = r'C:\Users\29735\Desktop\res.txt'
+    # hdm_data_path = r'C:\Users\Administrator.DESKTOP-95R7ULF\Desktop\s.txt'
     layer_name = '图层分离式路基中心线'
     layer_name_zxx = '图层中心线'
     hdms_lines = grop_hdms_lines(hdm_data_path)
 
-    res_path = r'C:\Users\Administrator.DESKTOP-95R7ULF\Desktop\res.txt'
+    # res_path = r'C:\Users\Administrator.DESKTOP-95R7ULF\Desktop\res.txt'
     res_file = open(res_path, 'w')
 
+    path_dat_saved = r'C:\Users\Administrator.DESKTOP-95R7ULF\Desktop\res.dat'
+    dat_file = open(path_dat_saved, 'w')
+    path_are_saved = r'C:\Users\Administrator.DESKTOP-95R7ULF\Desktop\res.are'
     # 1 墙背线替代挡墙，删除垫层
     for hdm in hdms_lines[0]:   # 每个桩号
         print(f'hdm:{hdm}')
@@ -788,11 +809,20 @@ if __name__ == "__main__":
             res_file.write('\n')
     #  检查6 8同时存在，只有一组7,X单调，只有一个5
 
-    #  5 计算坐标Z值
-
-    #  6 生成dat文件
-
+            # 5 计算坐标Z值
+            regx = f'设计高程\s*=\s*(\d+\.?\d*)'
+            design_height = re.findall(regx, hdms_lines[0][hdm]['text'], re.MULTILINE)
+            design_height = float(design_height[0])
+            corrected_z_line = calculate_height_of_point(marked_line, hdms_lines[0][hdm]['zxx_xyz'], design_height)
+            # 6 生成dat文件
+            dat_text = hdms_lines[0][hdm]['chainage']
+            regx = r'\d+\.*\d+'
+            dat_text = re.findall(regx, dat_text, re.MULTILINE)
+            dat_text = float("".join(dat_text))
+            dat_file.write(dat_text)
+            dat_file.write(r'\n')
     #  7 生成are文件
+    dat_file.close()
     res_file.close()
 
 
