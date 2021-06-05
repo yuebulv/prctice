@@ -101,8 +101,11 @@ if __name__ == "__main__":
 
     b = ['上海市', '云南省', '内蒙古', '四川省', '天津市', '宁夏', '安徽省', '山东省', '山西省']
 
-    a = [1, 2, 3]
-    c = '\\r'.join(map(str, a))
-    print(c)
-    c = ' '.join(map(str, a))
-    print(c)
+    # a = [1, 2, 3]
+    # c = '\\r'.join(map(str, a))
+    # print(c)
+    # c = ' '.join(map(str, a))
+    # print(c)
+
+    a = [0]*5
+    print(a)

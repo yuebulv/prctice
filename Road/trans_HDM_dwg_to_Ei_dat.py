@@ -86,7 +86,7 @@ def grop_hdms_lines(hdm_data_path, layer_name_zxx='图层中心线', layer_name=
         return ''
     filedata = file.read().lower()
     regx = roadglobal.regx_chainage_between_chainage
-    hdms_xyz_list = re.findall(regx, filedata, re.MULTILINE)  #所有横断面的文件及文字标注
+    hdms_xyz_list = re.findall(regx, filedata, re.MULTILINE)  # 所有横断面的文件及文字标注
     file.close()
     print(f'len((hdms_xyz_list)):{len((hdms_xyz_list))}')
     res_xyz_lines_chainage = {}  # {chainage:xyz_line_chainage_dic}
@@ -119,7 +119,11 @@ def grop_hdms_lines(hdm_data_path, layer_name_zxx='图层中心线', layer_name=
                 err_txt = 'hdm_separated_road_handle错误：分离式路基中心线X坐标与路基中心线X坐标相等，无法判断断面在分离式左侧还是右侧，请手动修改'
                 err_list.append(err_txt)
                 continue
-        xyz_line_chainage_dic['chainage'] = hdm_lines[0]
+        regx_chainage_dig = r'(?<!0)\d+\.*\d+'
+        chainage_dig = re.findall(regx_chainage_dig, hdm_lines[0], re.MULTILINE)
+        chainage_dig = "".join(chainage_dig)
+        xyz_line_chainage_dic['chainage'] = chainage_dig
+        # xyz_line_chainage_dic['chainage'] = hdm_lines[0]
         xyz_line_chainage_dic['text'] = hdm_lines[1]
         for hdm_line in hdm_lines:  # 每条线
             regx_xyz = r'x=(\d+\.?\d+)\s*y=(\d+\.?\d+)\s*z=(\d+\.?\d+)'
@@ -659,6 +663,7 @@ def calculate_height_of_point(line_origin, known_point_xyz, known_point_design_h
         line[i][0] = float('%.4f' % line[i][0])
     return line
 
+
 if __name__ == "__main__":
     # 注意：横断面图中桩号一般无断链信息，所以转为的dat, are文件中桩号也无断链信息，后续需要优化
     # hdm_data_path = r'C:\Users\29735\Desktop\s.txt'
@@ -666,7 +671,6 @@ if __name__ == "__main__":
     hdm_data_path = r'C:\Users\Administrator.DESKTOP-95R7ULF\Desktop\s.txt'
     layer_name = '图层分离式路基中心线'
     layer_name_zxx = '图层中心线'
-    hdms_lines = grop_hdms_lines(hdm_data_path)
 
     res_path = r'C:\Users\Administrator.DESKTOP-95R7ULF\Desktop\res.txt'
     res_file = open(res_path, 'w')
@@ -674,6 +678,9 @@ if __name__ == "__main__":
     path_dat_saved = r'C:\Users\Administrator.DESKTOP-95R7ULF\Desktop\res.dat'
     dat_file = open(path_dat_saved, 'w')
     path_are_saved = r'C:\Users\Administrator.DESKTOP-95R7ULF\Desktop\res.are'
+    are_file = open(path_are_saved, 'w')
+
+    hdms_lines = grop_hdms_lines(hdm_data_path)
     # 1 墙背线替代挡墙，删除垫层
     for hdm in hdms_lines[0]:   # 每个桩号
         print(f'hdm:{hdm}')
@@ -824,7 +831,9 @@ if __name__ == "__main__":
         except IndexError:
             hdms_lines[0][hdm]['zxx_xyz'][1] = hdms_lines[0][hdm]['left_lines'][0][0][1]
             hdms_lines[0][hdm]['zxx_xyz'][2] = hdms_lines[0][hdm]['left_lines'][0][0][2]
-    for hdm in hdms_lines[0]:  # 每个桩号
+
+    hdm_chainages = sorted(hdms_lines[0].keys())
+    for hdm in hdm_chainages:  # 每个桩号
         # 6 生成dat文件
         dat_text = hdms_lines[0][hdm]['chainage']
         regx = r'(?<!0)\d+\.*\d+'
@@ -847,8 +856,19 @@ if __name__ == "__main__":
         dat_text = "\n".join(map(str, hdms_lines[0][hdm]['right_lines'][0])).replace(',', ' ').replace('[', '').replace(']', '')
         dat_file.write(dat_text)
         dat_file.write('\n')
-    #  7 生成are文件
-    # 给dic排序
+        # 7 生成are文件
+        are_text_list = [0]*10
+        are_text_list[0] = hdm
+        pra_list = ['设计标高', '中桩填挖', '填方面积', '挖方面积']
+        i = 1
+        for pra in pra_list:
+            regx = f'{pra}\s*=\s*(\d+\.?\d*)'
+            are_text_list[i] = re.findall(regx, hdms_lines[0][hdm]['text'], re.MULTILINE)[0]
+            i += 1
+        are_text = ' '.join(map(str, are_text_list))
+        are_file.write(are_text)
+        are_file.write('\n')
+    are_file.close()
     dat_file.close()
     res_file.close()
 
