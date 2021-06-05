@@ -649,22 +649,26 @@ def calculate_height_of_point(line_origin, known_point_xyz, known_point_design_h
     '''
     line = copy.deepcopy(line_origin)
     for i in range(len(line)):
-        relative_height = line[i][1] - known_point_xyz[1]
+        try:
+            relative_height = line[i][1] - known_point_xyz[1]
+        except TypeError:
+            print(1)
         height = known_point_design_height + relative_height
-        line[i][2] = height
+        line[i][2] = float('%.4f' % height)
         line[i][1] = 0
+        line[i][0] = float('%.4f' % line[i][0])
     return line
 
 if __name__ == "__main__":
     # 注意：横断面图中桩号一般无断链信息，所以转为的dat, are文件中桩号也无断链信息，后续需要优化
-    hdm_data_path = r'C:\Users\29735\Desktop\s.txt'
-    res_path = r'C:\Users\29735\Desktop\res.txt'
-    # hdm_data_path = r'C:\Users\Administrator.DESKTOP-95R7ULF\Desktop\s.txt'
+    # hdm_data_path = r'C:\Users\29735\Desktop\s.txt'
+    # res_path = r'C:\Users\29735\Desktop\res.txt'
+    hdm_data_path = r'C:\Users\Administrator.DESKTOP-95R7ULF\Desktop\s.txt'
     layer_name = '图层分离式路基中心线'
     layer_name_zxx = '图层中心线'
     hdms_lines = grop_hdms_lines(hdm_data_path)
 
-    # res_path = r'C:\Users\Administrator.DESKTOP-95R7ULF\Desktop\res.txt'
+    res_path = r'C:\Users\Administrator.DESKTOP-95R7ULF\Desktop\res.txt'
     res_file = open(res_path, 'w')
 
     path_dat_saved = r'C:\Users\Administrator.DESKTOP-95R7ULF\Desktop\res.dat'
@@ -790,7 +794,6 @@ if __name__ == "__main__":
             # 删除重复点
             sorted_line = del_coincide_point_in_line(sorted_line, tolerance=0.01)
             print(f'sorted_line:{sorted_line}')
-            hdms_lines[0][hdm][key_left_Or_right] = [sorted_line]
             if key_left_Or_right == 'left_lines':
                 regx = f'左路基宽\s*=\s*(\d+\.?\d*)'
             else:
@@ -813,15 +816,39 @@ if __name__ == "__main__":
             regx = f'设计高程\s*=\s*(\d+\.?\d*)'
             design_height = re.findall(regx, hdms_lines[0][hdm]['text'], re.MULTILINE)
             design_height = float(design_height[0])
-            corrected_z_line = calculate_height_of_point(marked_line, hdms_lines[0][hdm]['zxx_xyz'], design_height)
-            # 6 生成dat文件
-            dat_text = hdms_lines[0][hdm]['chainage']
-            regx = r'\d+\.*\d+'
-            dat_text = re.findall(regx, dat_text, re.MULTILINE)
-            dat_text = float("".join(dat_text))
-            dat_file.write(dat_text)
-            dat_file.write(r'\n')
+            corrected_z_line = calculate_height_of_point(marked_line, hdms_lines[0][hdm]['zxx_xyz'], design_height)  # 修改Z坐标
+            hdms_lines[0][hdm][key_left_Or_right] = [corrected_z_line]
+        try:
+            hdms_lines[0][hdm]['zxx_xyz'][1] = hdms_lines[0][hdm][key_left_Or_right][0][0][1]
+            hdms_lines[0][hdm]['zxx_xyz'][2] = hdms_lines[0][hdm][key_left_Or_right][0][0][2]
+        except IndexError:
+            hdms_lines[0][hdm]['zxx_xyz'][1] = hdms_lines[0][hdm]['left_lines'][0][0][1]
+            hdms_lines[0][hdm]['zxx_xyz'][2] = hdms_lines[0][hdm]['left_lines'][0][0][2]
+    for hdm in hdms_lines[0]:  # 每个桩号
+        # 6 生成dat文件
+        dat_text = hdms_lines[0][hdm]['chainage']
+        regx = r'(?<!0)\d+\.*\d+'
+        dat_text = re.findall(regx, dat_text, re.MULTILINE)
+        dat_text = "".join(dat_text)
+        dat_file.write(dat_text)
+        dat_file.write('\n')
+        dat_text = ' '.join(map(str, hdms_lines[0][hdm]['zxx_xyz']))
+        dat_file.write(dat_text)
+        dat_file.write('\n')
+        dat_text = str(len(hdms_lines[0][hdm]['left_lines'][0]))
+        dat_file.write(dat_text)
+        dat_file.write('\n')
+        dat_text = "\n".join(map(str, hdms_lines[0][hdm]['left_lines'][0])).replace(',', ' ').replace('[', '').replace(']', '')
+        dat_file.write(dat_text)
+        dat_file.write('\n')
+        dat_text = str(len(hdms_lines[0][hdm]['right_lines'][0]))
+        dat_file.write(dat_text)
+        dat_file.write('\n')
+        dat_text = "\n".join(map(str, hdms_lines[0][hdm]['right_lines'][0])).replace(',', ' ').replace('[', '').replace(']', '')
+        dat_file.write(dat_text)
+        dat_file.write('\n')
     #  7 生成are文件
+    # 给dic排序
     dat_file.close()
     res_file.close()
 
