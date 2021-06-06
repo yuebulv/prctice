@@ -53,7 +53,7 @@ drainageFilter3 = ['0<height[3]', '0<=abs(gradient[3])<=2', 'width[2]*width[3]>=
 drain_filter = [drainageFilter1, drainageFilter2, drainageFilter3]  # 必须一条线一个元素
 
 regx_chainage_between_chainage = r'^\w?[Kk]\d+\+\d+(?:.+[\n\r]){2}(?:.+(?:z=0\.0000\ *[\n\r]))+'
-
+regx_get_filename_from_path = r'.+/(\w+(?:\w*\.*)*)\.\w+$'  # 提取路径中文件名
 
 def regx_FindXPathFromPrj(typeOfFindX):
     # return f'\*\.{typeOfFindX}\).*=\s*(.*)\s*(?=\n)'

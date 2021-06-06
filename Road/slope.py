@@ -75,14 +75,14 @@ import copy
 import glob
 import roadglobal
 import gui_confirm
-# import filedialog
+from tkinter import filedialog
 logName = ''
 logPath = ''
 if __name__ == "__main__":
     root = tk.Tk()
     root.withdraw()
     folderpath = filedialog.askdirectory(title='请选择prj文件所在文件夹')
-    os.chdir(folderpath)
+    os.chdir(folderpath)  # 切换工作路径
     for prjfile in glob.glob('*.prj'):
         prjpath = folderpath+'\\'+prjfile
         if os.path.exists(prjpath) == False:

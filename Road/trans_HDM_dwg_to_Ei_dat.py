@@ -54,6 +54,10 @@ import operator
 import copy
 import numpy as np
 import sys
+import os
+import tkinter as tk
+from tkinter import filedialog
+
 
 def grop_hdms_lines(hdm_data_path, layer_name_zxx='图层中心线', layer_name='图层分离式路基中心线'):
     '''
@@ -121,7 +125,7 @@ def grop_hdms_lines(hdm_data_path, layer_name_zxx='图层中心线', layer_name=
                 continue
         regx_chainage_dig = r'(?<!0)\d+\.*\d+'
         chainage_dig = re.findall(regx_chainage_dig, hdm_lines[0], re.MULTILINE)
-        chainage_dig = "".join(chainage_dig)
+        chainage_dig = float("".join(chainage_dig))
         xyz_line_chainage_dic['chainage'] = chainage_dig
         # xyz_line_chainage_dic['chainage'] = hdm_lines[0]
         xyz_line_chainage_dic['text'] = hdm_lines[1]
@@ -155,7 +159,7 @@ def grop_hdms_lines(hdm_data_path, layer_name_zxx='图层中心线', layer_name=
                 right_line.append(right_line_points)
         xyz_line_chainage_dic['left_lines'] = left_line
         xyz_line_chainage_dic['right_lines'] = right_line
-        res_xyz_lines_chainage[hdm_lines[0]] = xyz_line_chainage_dic
+        res_xyz_lines_chainage[chainage_dig] = xyz_line_chainage_dic
     res_xyz_lines_chainage_and_err.append(res_xyz_lines_chainage)
     res_xyz_lines_chainage_and_err.append(err_list)
     return res_xyz_lines_chainage_and_err
@@ -664,23 +668,26 @@ def calculate_height_of_point(line_origin, known_point_xyz, known_point_design_h
     return line
 
 
-if __name__ == "__main__":
+def main(hdm_data_path):
     # 注意：横断面图中桩号一般无断链信息，所以转为的dat, are文件中桩号也无断链信息，后续需要优化
     # hdm_data_path = r'C:\Users\29735\Desktop\s.txt'
     # res_path = r'C:\Users\29735\Desktop\res.txt'
-    hdm_data_path = r'C:\Users\Administrator.DESKTOP-95R7ULF\Desktop\s.txt'
-    layer_name = '图层分离式路基中心线'
-    layer_name_zxx = '图层中心线'
-
-    res_path = r'C:\Users\Administrator.DESKTOP-95R7ULF\Desktop\res.txt'
+    if os.path.exists(hdm_data_path):
+        hdm_data_path = hdm_data_path.replace('\\', '/')
+        regEx = roadglobal.regx_get_filename_from_path
+        file_name = re.findall(regEx, hdm_data_path, re.MULTILINE)[0]
+        regEx = r"(.+/).+$"
+        file_path = re.findall(regEx, hdm_data_path, re.MULTILINE)[0]
+    res_path = file_path + 'res.txt'
     res_file = open(res_path, 'w')
-
-    path_dat_saved = r'C:\Users\Administrator.DESKTOP-95R7ULF\Desktop\res.dat'
+    path_dat_saved = file_path + file_name + '.dat'
     dat_file = open(path_dat_saved, 'w')
-    path_are_saved = r'C:\Users\Administrator.DESKTOP-95R7ULF\Desktop\res.are'
+    path_are_saved = file_path + file_name + '.are'
     are_file = open(path_are_saved, 'w')
 
-    hdms_lines = grop_hdms_lines(hdm_data_path)
+    layer_name = '图层分离式路基中心线'
+    layer_name_zxx = '图层中心线'
+    hdms_lines = grop_hdms_lines(hdm_data_path, layer_name_zxx, layer_name)
     # 1 墙背线替代挡墙，删除垫层
     for hdm in hdms_lines[0]:   # 每个桩号
         print(f'hdm:{hdm}')
@@ -833,13 +840,11 @@ if __name__ == "__main__":
             hdms_lines[0][hdm]['zxx_xyz'][2] = hdms_lines[0][hdm]['left_lines'][0][0][2]
 
     hdm_chainages = sorted(hdms_lines[0].keys())
+    print(f'hdm_chainages:{hdm_chainages}')
     for hdm in hdm_chainages:  # 每个桩号
         # 6 生成dat文件
         dat_text = hdms_lines[0][hdm]['chainage']
-        regx = r'(?<!0)\d+\.*\d+'
-        dat_text = re.findall(regx, dat_text, re.MULTILINE)
-        dat_text = "".join(dat_text)
-        dat_file.write(dat_text)
+        dat_file.write(str(dat_text))
         dat_file.write('\n')
         dat_text = ' '.join(map(str, hdms_lines[0][hdm]['zxx_xyz']))
         dat_file.write(dat_text)
@@ -857,20 +862,33 @@ if __name__ == "__main__":
         dat_file.write(dat_text)
         dat_file.write('\n')
         # 7 生成are文件
-        are_text_list = [0]*10
-        are_text_list[0] = hdm
-        pra_list = ['设计标高', '中桩填挖', '填方面积', '挖方面积']
+        are_text_list = [0]*12
+        are_text_list[0] = float(hdm)
+        pra_list = ['设计高程', '[填|挖]方[高|深]', '填方面积', '挖方面积']
         i = 1
         for pra in pra_list:
             regx = f'{pra}\s*=\s*(\d+\.?\d*)'
             are_text_list[i] = re.findall(regx, hdms_lines[0][hdm]['text'], re.MULTILINE)[0]
+            if i == 2 and hdms_lines[0][hdm]['text'].find('挖方深') > -1:
+                are_text_list[i] = -float(are_text_list[i])
             i += 1
-        are_text = ' '.join(map(str, are_text_list))
+        are_text = '\t'.join(map(str, are_text_list))
         are_file.write(are_text)
         are_file.write('\n')
     are_file.close()
     dat_file.close()
     res_file.close()
+
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    root.withdraw()
+    my_filetypes = [('text files', '.txt'), ('all files', '.*')]
+    answer_file = filedialog.askopenfilename(parent=root, title="Please select a file:", filetypes=my_filetypes)
+    if os.path.exists(answer_file):
+        main(answer_file)
+    print('dat_are文件转换完成')
+
 
 
 

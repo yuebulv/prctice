@@ -1,24 +1,18 @@
+import TransEiDatToHint3dr
 from tkinter import *
-import tkinter.filedialog
 import tkinter as tk
+from tkinter import filedialog
 import os
 import road
 import pymysql
 import math
 import mysql
 import copy
-import roadglobal
 import glob
-from PySide2.QtWidgets import QApplication, QMessageBox
-from PySide2.QtUiTools import QUiLoader
-from PySide2.QtCore import QFile
-import tkinter
-import tkinter.messagebox
-from operator import itemgetter
-import json
+import roadglobal
 import gui_confirm
-from tkinter import simpledialog
-import numpy as np
+from tkinter import filedialog
+# import filedialog
 class Stats:
     def __init__(self):
         # 从文件中加载UI定义
@@ -95,17 +89,4 @@ class Stats:
 
 
 if __name__ == "__main__":
-    # varurl = 'https://gw.dushu.io/r/34440a483c1c'
-    # varurl = varurl.replace('.', '').replace('/', '')
-    # print(varurl)
-
-    b = ['上海市', '云南省', '内蒙古', '四川省', '天津市', '宁夏', '安徽省', '山东省', '山西省']
-
-    # a = [1, 2, 3]
-    # c = '\\r'.join(map(str, a))
-    # print(c)
-    # c = ' '.join(map(str, a))
-    # print(c)
-
-    a = [0]*5
-    print(a)
+    print(float('020'))
