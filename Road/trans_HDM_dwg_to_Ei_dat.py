@@ -534,13 +534,13 @@ def mark_road_item_in_line(line_origin, subgrade_width):
     # line 格式[[x,y,z], [x,y,z]...]
     # line 中各点从中心线到坡脚排序
     line = copy.deepcopy(line_origin)
-    err_list = []
+    err_list_mark = []
     tolerance = 0.01  # 容差范围
     subgrade_width = abs(subgrade_width)
     if abs(line[0][0]-line[-1][0])-subgrade_width < -tolerance:
         err_text = f'mark_road_item_in_line-line:{line},总宽度小于路基宽度：{subgrade_width}'
-        err_list.append(err_text)
-        return [[], err_list]
+        err_list_mark.append(err_text)
+        return {'line': [], 'err_list': err_list_mark}  # [[], err_list_mark]
     width_to_centre_line = 0
     road_item_priority = [5, 2, 2, 1, 1, 1, 1, 1]
     i_platform_omit_type_list = []
@@ -678,6 +678,8 @@ def main(hdm_data_path):
         file_name = re.findall(regEx, hdm_data_path, re.MULTILINE)[0]
         regEx = r"(.+/).+$"
         file_path = re.findall(regEx, hdm_data_path, re.MULTILINE)[0]
+    else:
+        return []
     res_path = file_path + 'res.txt'
     res_file = open(res_path, 'w')
     path_dat_saved = file_path + file_name + '.dat'
@@ -687,6 +689,7 @@ def main(hdm_data_path):
 
     layer_name = '图层分离式路基中心线'
     layer_name_zxx = '图层中心线'
+    err_list_main = []
     hdms_lines = grop_hdms_lines(hdm_data_path, layer_name_zxx, layer_name)
     # 1 墙背线替代挡墙，删除垫层
     for hdm in hdms_lines[0]:   # 每个桩号
@@ -818,6 +821,15 @@ def main(hdm_data_path):
             # 5 中央分隔带，行车道，路肩，水沟，边坡标注
             marked_line = mark_road_item_in_line(sorted_line, width_subgrade)
             print(f'marked_line:{marked_line}')
+            try:
+                err_list_main.append(marked_line['err_list'])
+            except TypeError:
+                pass
+            else:
+                print(f'err_list:{err_list_main}')
+                err_list_main[-1].append([{'hdm': hdm, 'key_left_Or_right': key_left_Or_right}])
+                hdms_lines[0][hdm][key_left_Or_right] = []
+                continue
             temp_xyz = np.array(marked_line)[:, 0:3].tolist()
             res_file.write('3q '+str(temp_xyz))
             res_file.write('\n')
@@ -878,15 +890,27 @@ def main(hdm_data_path):
     are_file.close()
     dat_file.close()
     res_file.close()
+    return {'err_list': err_list_main}
 
 
 if __name__ == "__main__":
+    err_list = []
     root = tk.Tk()
     root.withdraw()
     my_filetypes = [('text files', '.txt'), ('all files', '.*')]
     answer_file = filedialog.askopenfilename(parent=root, title="Please select a file:", filetypes=my_filetypes)
     if os.path.exists(answer_file):
-        main(answer_file)
+        err_list = main(answer_file)['err_list']
+        hdm_data_path = answer_file.replace('\\', '/')
+        regEx = r"(.+/).+$"
+        file_path = re.findall(regEx, hdm_data_path, re.MULTILINE)[0]
+        file_path = file_path + 'err_trans_hdm_dwg_to_ei_dat.txt'
+        err_file = open(file_path, 'w')
+        for err in err_list:
+            # err_text = ' '.join(map(str, err))
+            err_file.write(str(err))
+            err_file.write('\n')
+        err_file.close()
     print('dat_are文件转换完成')
 
 
