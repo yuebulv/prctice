@@ -123,7 +123,7 @@ def grop_hdms_lines(hdm_data_path, layer_name_zxx='图层中心线', layer_name=
                 err_txt = 'hdm_separated_road_handle错误：分离式路基中心线X坐标与路基中心线X坐标相等，无法判断断面在分离式左侧还是右侧，请手动修改'
                 err_list.append(err_txt)
                 continue
-        regx_chainage_dig = r'(?<!0)\d+\.*\d+'
+        regx_chainage_dig = r'(?<!0)\d+\.*\d*'
         chainage_dig = re.findall(regx_chainage_dig, hdm_lines[0], re.MULTILINE)
         chainage_dig = float("".join(chainage_dig))
         xyz_line_chainage_dic['chainage'] = chainage_dig
@@ -282,6 +282,10 @@ def del_drainage_outside_frame(lines):
     err_list = []
     for line in lines:
         # 如果有一线中，水沟设计线与衬砌线同时存在，那他们X值的单调性不同，-2,2分别表示X值递减、递增；-1,1分别表示垂直递减、垂直递增。
+        # 删除特殊形状
+        print(f'l:{line}')
+        line = correct_special_shape(line)
+        print(f'c:{line}')
         i_change_index_list = [[0, 0, 0]]  # [X值递减或递增，i_start,i_end]
         data_inner_outer_frame = [[0, 0, 0, 0], [0, 0, 0, 0]]  # [-2或2,i_start_in_line,i_end_in_line,min_y] 表示
         x_direction = 0
@@ -662,9 +666,72 @@ def calculate_height_of_point(line_origin, known_point_xyz, known_point_design_h
         except TypeError:
             print(1)
         height = known_point_design_height + relative_height
-        line[i][2] = float('%.4f' % height)
-        line[i][1] = 0
-        line[i][0] = float('%.4f' % line[i][0])
+        line[i][2] = '%.4f' % height  # float('%.4f' % height)
+        line[i][1] = '0.0000'
+        line[i][0] = '%.4f' % line[i][0]  # float('%.4f' % line[i][0])
+    return line
+
+
+def check_hdm_line(line_origin):
+    # 检查6 8同时存在，只有一组7,X单调，只有一个5
+    '''
+    :param line_origin: [[x, y, z, num], [[x, y, z, num]]...]
+    :return:{‘line’:line_new, 'err_list':err_list}
+    '''
+    # line中num=7有多组时，保留y值最小的一组，意图删除坡顶截水沟
+    line = copy.deepcopy(line_origin)
+    num_7_dic = {}
+    i_num_is_7 = []
+    err_list_check = []
+    j = 1
+    for i in range(len(line)):
+        if line[i][3] == 7:
+            i_num_is_7.append(i)
+            try:
+                y_min = min(y_min, line[i][1])
+            except NameError:
+                y_min = line[i][1]
+            num_7_dic[j] = {'i_list': i_num_is_7, 'y_min': y_min}
+            try:
+                y_min_min = min(y_min, y_min_min)
+            except NameError:
+                y_min_min = y_min
+        else:
+            if len(i_num_is_7) > 0:
+                num_7_dic[j] = {'i_list': i_num_is_7, 'y_min': y_min}
+                j += 1
+                i_num_is_7 = []
+                del y_min
+    i_del = []
+    if len(num_7_dic) > 1:
+        for key in num_7_dic:
+            if num_7_dic[key]['y_min'] > y_min_min:
+                i_del.extend(num_7_dic[key]['i_list'])
+        i_del = sorted(i_del, reverse=True)
+        for i in i_del:
+            del line[i]
+    return {'line': line, 'err_list': err_list_check}
+
+
+def correct_special_shape(line_origin):
+    # 修正指定形状line
+    # 连续三点A/B/C，坐标Y值相同，X-B 不在X-A X-C之间，则删除B点，如果A/B两点距离小于tolerate时，删除与B点距离较近点
+    line = copy.deepcopy(line_origin)
+    i_line_del = []
+    tolerance = 0.05
+    if len(line) > 2:
+        for i in range(2, len(line)):
+            if line[i][1] == line[i-1][1] == line[i-2][1]:
+                if line[i-1][0] < min(line[i][0], line[i-2][0]) or line[i-1][0] > max(line[i][0], line[i-2][0]):
+                    i_line_del.append(i-1)
+                    if abs(line[i][0]-line[i-2][0]) <= tolerance:
+                        if abs(line[i-1][0]-line[i-2][0]) > abs(line[i-1][0]-line[i][0]):
+                            i_line_del.append(i)
+                        else:
+                            i_line_del.append(i - 2)
+        i_line_del = sorted(i_line_del, reverse=True)
+        for i in i_line_del:
+            del line[i]
     return line
 
 
@@ -776,7 +843,7 @@ def main(hdm_data_path):
     for hdm in hdms_lines[0]:  # 每个桩号
         for key_left_Or_right in ['left_lines', 'right_lines']:
             hdms_lines[0][hdm][key_left_Or_right] = del_drainage_outside_frame(hdms_lines[0][hdm][key_left_Or_right])[0]
-            print(f'hdms_lines[0][hdm]:{hdms_lines[0][hdm]}')
+            print(f'hdms_lines[0][hdm]:{hdms_lines[0][hdm][key_left_Or_right]}')
             # 4 给线段各顶点调整起止顺序，排序，
             if key_left_Or_right == 'left_lines':
                 x_direction = -2
@@ -819,7 +886,13 @@ def main(hdm_data_path):
             width_subgrade = float(width_subgrade[0])
             print(f'width_subgrade:{width_subgrade}')
             # 5 中央分隔带，行车道，路肩，水沟，边坡标注
-            marked_line = mark_road_item_in_line(sorted_line, width_subgrade)
+            if len(sorted_line) > 1:
+                marked_line = mark_road_item_in_line(sorted_line, width_subgrade)
+            else:
+                err_txt = f'桩号：{hdm},{key_left_Or_right},断面错误'
+                err_list_main.append(err_txt)
+                hdms_lines[0][hdm][key_left_Or_right] = [[]]
+                continue
             print(f'marked_line:{marked_line}')
             try:
                 err_list_main.append(marked_line['err_list'])
@@ -828,16 +901,19 @@ def main(hdm_data_path):
             else:
                 print(f'err_list:{err_list_main}')
                 err_list_main[-1].append([{'hdm': hdm, 'key_left_Or_right': key_left_Or_right}])
-                hdms_lines[0][hdm][key_left_Or_right] = []
+                hdms_lines[0][hdm][key_left_Or_right] = [[]]
                 continue
-            temp_xyz = np.array(marked_line)[:, 0:3].tolist()
+            #  检查6 8同时存在，只有一组7,X单调，只有一个5
+            checked_line = check_hdm_line(marked_line)
+            if len(checked_line['err_list']) > 0:
+                err_list_main.append(checked_line['err_list'])
+                err_list_main[-1].append([{'hdm': hdm, 'key_left_Or_right': key_left_Or_right}])
+            temp_xyz = np.array(checked_line['line'])[:, 0:3].tolist()
             res_file.write('3q '+str(temp_xyz))
             res_file.write('\n')
-            temp_xyz = np.array(marked_line)[:, -1].tolist()
+            temp_xyz = np.array(checked_line['line'])[:, -1].tolist()
             res_file.write(str(temp_xyz))
             res_file.write('\n')
-    #  检查6 8同时存在，只有一组7,X单调，只有一个5
-
             # 5 计算坐标Z值
             regx = f'设计高程\s*=\s*(\d+\.?\d*)'
             design_height = re.findall(regx, hdms_lines[0][hdm]['text'], re.MULTILINE)
@@ -864,13 +940,13 @@ def main(hdm_data_path):
         dat_text = str(len(hdms_lines[0][hdm]['left_lines'][0]))
         dat_file.write(dat_text)
         dat_file.write('\n')
-        dat_text = "\n".join(map(str, hdms_lines[0][hdm]['left_lines'][0])).replace(',', ' ').replace('[', '').replace(']', '')
+        dat_text = "\n".join(map(str, hdms_lines[0][hdm]['left_lines'][0])).replace(',', '').replace('[', '').replace(']', '').replace("'", '')
         dat_file.write(dat_text)
         dat_file.write('\n')
         dat_text = str(len(hdms_lines[0][hdm]['right_lines'][0]))
         dat_file.write(dat_text)
         dat_file.write('\n')
-        dat_text = "\n".join(map(str, hdms_lines[0][hdm]['right_lines'][0])).replace(',', ' ').replace('[', '').replace(']', '')
+        dat_text = "\n".join(map(str, hdms_lines[0][hdm]['right_lines'][0])).replace(',', '').replace('[', '').replace(']', '').replace("'", '')
         dat_file.write(dat_text)
         dat_file.write('\n')
         # 7 生成are文件
