@@ -63,3 +63,12 @@ def regx_FindXPathFromPrj(typeOfFindX):
 def regx_exclude_str(str1, str2):
     # 按行分组，且此行中不含str1,str2字符，str1,str2顺序可换
     return f'^(?:(?!{str1}).(?!{str2}))*$'
+
+
+# 纬地dmx文件中查找桩号是否存在
+def regx_is_key_in_dmx(key):
+    if key.find('.') == -1:  # 判断是整桩号还是含小数桩号
+        regx = f'^(?<!\w)\s*({key}(?:\.0+)?)(?!\w)'
+    else:
+        regx = f'^(?<!\w)\s*({key}0*)(?!\w)'
+    return regx

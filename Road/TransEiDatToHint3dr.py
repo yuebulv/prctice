@@ -34,6 +34,7 @@ from tkinter import filedialog
 from tkinter import *
 import sys
 import road
+import roadglobal
 def get3DdataFromDatfile(path): # 1 从dat文件中获取逐桩横断面三维数据
     DatFile=''
     with open(path, "r") as FData:
@@ -357,11 +358,11 @@ def whetherContainTheKeyInDmxfile(key, path_Dmxfile):
         sys.exit()
     else:
         key = key.replace('.', '\.')
-        # regex = f'(?<!\d){key}\\0*[\t| ]'
-        if key.find('.') == -1:  # 判断是整桩号还是含小数桩号
-            regx = f'^(?<!\w)({key}(?:\.0+)?)(?!\w)'  # 将tf中桩号chainage信息提取
-        else:
-            regx = f'^(?<!\w)({key}0*)(?!\w)'
+        regx = roadglobal.regx_is_key_in_dmx(key)
+        # if key.find('.') == -1:  # 判断是整桩号还是含小数桩号
+        #     regx = f'^(?<!\w)({key}(?:\.0+)?)(?!\w)'  # 将tf中桩号chainage信息提取
+        # else:
+        #     regx = f'^(?<!\w)({key}0*)(?!\w)'
         data_dmx = re.findall(regx, data_dmx, re.MULTILINE)
         print(f'regx:{regx}')
         print(f'data_dmx:{data_dmx}')

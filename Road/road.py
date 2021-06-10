@@ -856,7 +856,10 @@ def insert_slope_value_betweent_chainageAB(rapidGutterChainage_noBreak, nearbyCh
     rapidGutter_dic['第i级'] = i
     i = i-1
     rapidGutter_dic['S高度'] = round(rapidGutter_dic['坡高']-height_B_sum, 3)
-    rapidGutter_dic['S坡度'] = round((nearbyChainageData[0][i]['S坡度'] + nearbyChainageData[1][i]['S坡度']) / 2, 3)
+    try:
+        rapidGutter_dic['S坡度'] = round((nearbyChainageData[0][i]['S坡度'] + nearbyChainageData[1][i]['S坡度']) / 2, 3)
+    except IndexError:
+        print(1)
     rapidGutter_dic['S宽度'] = round(rapidGutter_dic['S高度'] * rapidGutter_dic['S坡度'], 3)
     if abs(rapidGutter_dic['S高度'])+0.05 < abs(nearbyChainageData[index_list[1]][i]['S高度']):
         rapidGutter_dic['P高度'] = round(nearbyChainageData[index_list[0]][i]['P高度'], 3)
@@ -1601,6 +1604,8 @@ def set_rapid_gutter_a(database_name, prjpath, rapid_gutter_saved_path):
                 elif len(nearbyChainageData[1]) == 0:
                     rapidGutter_dic_list[lorR-1] = nearbyChainageData[0]
                 else:
+                    if float(nobreakchainages_rapit_gutter_list[i]) == 160:
+                        print(1)
                     rapidGutter_dic_list[lorR-1] = road.insert_slope_value_betweent_chainageAB(nobreakchainages_rapit_gutter_list[i], nearbyChainageData, prjpath)
                     # try:
                     #     rapidGutter_dic_list = road.insert_slope_value_betweent_chainageAB(nobreakchainages_rapit_gutter_list[i],

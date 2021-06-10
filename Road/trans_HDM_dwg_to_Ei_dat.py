@@ -110,6 +110,7 @@ def grop_hdms_lines(hdm_data_path, layer_name_zxx='图层中心线', layer_name=
             continue
         else:
             zxx_x = float(zxx_x_tuple[0][0])
+
         try:
             separated_x = float(separated_x_tuple[0][0])
         except IndexError:
@@ -123,6 +124,20 @@ def grop_hdms_lines(hdm_data_path, layer_name_zxx='图层中心线', layer_name=
                 err_txt = 'hdm_separated_road_handle错误：分离式路基中心线X坐标与路基中心线X坐标相等，无法判断断面在分离式左侧还是右侧，请手动修改'
                 err_list.append(err_txt)
                 continue
+        try:
+            separated_x_2 = float(separated_x_tuple[1][0])
+        except IndexError:
+            symbol_2 = '!=-123456789'
+        else:
+            if separated_x_2 > zxx_x:
+                symbol_2 = '<=' + str(separated_x_2)
+            elif separated_x < zxx_x:
+                symbol_2 = '>=' + str(separated_x_2)
+            else:
+                err_txt = 'hdm_separated_road_handle错误：分离式路基中心线X坐标与路基中心线X坐标相等，无法判断断面在分离式左侧还是右侧，请手动修改'
+                err_list.append(err_txt)
+                continue
+
         regx_chainage_dig = r'(?<!0)\d+\.*\d*'
         chainage_dig = re.findall(regx_chainage_dig, hdm_lines[0], re.MULTILINE)
         chainage_dig = float("".join(chainage_dig))
@@ -143,7 +158,8 @@ def grop_hdms_lines(hdm_data_path, layer_name_zxx='图层中心线', layer_name=
             for xyz_point in xyz_line_chainage:  # 线中每个点
                 print(f'xyz_point:{xyz_point}')
                 exp = xyz_point[0] + symbol
-                if eval(exp):   # 过虑分离式路基
+                exp_2 = xyz_point[0] + symbol_2
+                if eval(exp) and eval(exp_2):   # 过虑分离式路基
                     xyz_point = list(map(float, xyz_point))  # 转为数值形数据
                     if float(xyz_point[0]) == zxx_x:  # 中间点
                         left_line_points.append(list(xyz_point))
@@ -295,7 +311,7 @@ def del_drainage_outside_frame(lines):
                 if i_change_index_list[-1][0] != line[i][2]:
                     i_change_index_list[-1][-1] = i-2
                     i_change_index_list.append([line[i][2], i-1, 0])
-                    if i > 1:
+                    if i > 1 and line[i][1] == line[i-1][1]:
                         if line[i-1][1]-line[i-2][1] > 0:
                             x_direction = line[i][2]
                         else:
@@ -307,7 +323,7 @@ def del_drainage_outside_frame(lines):
                 if i_change_index_list[-1][0] != line[i][2]:
                     i_change_index_list[-1][-1] = i - 2
                     i_change_index_list.append([line[i][2], i-1, 0])
-                    if i > 1:
+                    if i > 1 and line[i][1] == line[i-1][1]:
                         if line[i-1][1]-line[i-2][1] > 0:
                             x_direction = line[i][2]
                         else:
@@ -624,7 +640,7 @@ def mark_road_item_in_line(line_origin, subgrade_width):
                 if line[j][3] > 5 and slope != 9999:
                     item_and_slope_of_next_point = [line[j][3], slope]
                     break
-            if item_and_slope_of_last_point[0] == item_and_slope_of_next_point[0]:  # 判定为平台截水沟
+            if item_and_slope_of_last_point[0] == item_and_slope_of_next_point[0] > 5:  # 判定为平台截水沟
                 for i_drain_del in i_drain_list:
                     line[i_drain_del] = []
             i_drain_list = []
@@ -661,10 +677,7 @@ def calculate_height_of_point(line_origin, known_point_xyz, known_point_design_h
     '''
     line = copy.deepcopy(line_origin)
     for i in range(len(line)):
-        try:
-            relative_height = line[i][1] - known_point_xyz[1]
-        except TypeError:
-            print(1)
+        relative_height = line[i][1] - known_point_xyz[1]
         height = known_point_design_height + relative_height
         line[i][2] = '%.4f' % height  # float('%.4f' % height)
         line[i][1] = '0.0000'
@@ -729,6 +742,27 @@ def correct_special_shape(line_origin):
                             i_line_del.append(i)
                         else:
                             i_line_del.append(i - 2)
+        i_line_del = sorted(i_line_del, reverse=True)
+        for i in i_line_del:
+            del line[i]
+    # 连续三个点A/B/C，坐标X值相同，Y-B 不在Y-A Y-C之间，则删除B点
+    i_line_del = []
+    if len(line) > 2:
+        for i in range(2, len(line)):
+            if line[i][0] == line[i-1][0] == line[i-2][0]:
+                if line[i-1][1] < min(line[i][1], line[i-2][1]) or line[i-1][1] > max(line[i][1], line[i-2][1]):
+                    i_line_del.append(i-1)
+        i_line_del = sorted(i_line_del, reverse=True)
+        for i in i_line_del:
+            del line[i]
+    # 连续6个点，中间4个点Y值相等，两端Y值高于中间4点，则删除中间4点
+    i_line_del = []
+    if len(line) > 5:
+        for i in range(5, len(line)):
+            if line[i-4][1] == line[i-3][1] == line[i-2][1] == line[i-1][1]:
+                if line[i-5][1] > line[i-4][1] and line[i][1] > line[i-4][1]:
+                    for temp in [i-4, i-3, i-3, i-1]:
+                        i_line_del.append(temp)
         i_line_del = sorted(i_line_del, reverse=True)
         for i in i_line_del:
             del line[i]
@@ -877,6 +911,7 @@ def main(hdm_data_path):
             sorted_line = del_point_of_dif_direction_in_line(sorted_line)
             # 删除重复点
             sorted_line = del_coincide_point_in_line(sorted_line, tolerance=0.01)
+            sorted_line = correct_special_shape(sorted_line)
             print(f'sorted_line:{sorted_line}')
             if key_left_Or_right == 'left_lines':
                 regx = f'左路基宽\s*=\s*(\d+\.?\d*)'
@@ -918,7 +953,7 @@ def main(hdm_data_path):
             regx = f'设计高程\s*=\s*(\d+\.?\d*)'
             design_height = re.findall(regx, hdms_lines[0][hdm]['text'], re.MULTILINE)
             design_height = float(design_height[0])
-            corrected_z_line = calculate_height_of_point(marked_line, hdms_lines[0][hdm]['zxx_xyz'], design_height)  # 修改Z坐标
+            corrected_z_line = calculate_height_of_point(checked_line['line'], hdms_lines[0][hdm]['zxx_xyz'], design_height)  # 修改Z坐标
             hdms_lines[0][hdm][key_left_Or_right] = [corrected_z_line]
         try:
             hdms_lines[0][hdm]['zxx_xyz'][1] = hdms_lines[0][hdm][key_left_Or_right][0][0][1]
