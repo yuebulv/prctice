@@ -699,8 +699,8 @@ def insertDataFrom3drToTableSlope(prjpath, chainage, prjname):
             try:    #不含边沟、排水沟时，边坡计入填方
                 i_slopeEnd = drainagePosition+1
             except:
-                drainagePosition =int(drData_list[0])-1
-                drainageLinesCount =0
+                drainagePosition = int(drData_list[0])-1
+                drainageLinesCount = 0
             print('roadShoulderPosition', roadShoulderPosition)
             # 3.4 1）路肩与边沟之间边坡；2）边沟与坡脚之间边坡 范围划分
             for slopePostionComparedWithdrainage in [1, 2]:  # 1表示边坡在边沟左侧，2表示边坡在边沟右侧

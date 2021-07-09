@@ -146,6 +146,10 @@ def TransEiDatToHintTf(get3DdataFromDatfile, path_tfsaved, path_EiAre):
                 dist_3dr=((Hdmlist[0]-key_design_xyz[0])**2+(Hdmlist[1]-key_design_xyz[1])**2)**0.5 #平距
                 dist_3dr = round(dist_3dr, 3)
                 # 判断当前Hdmlist在横断面中处于哪个部位#2.3.1.1 先将路基左/右侧数据存入list中
+                try:
+                    Hdmlist_last[0]
+                except IndexError:
+                    Hdmlist_last = Hdmlist[:]
                 if Hdmlist[-1]==1:  #中央分隔带
                     pass
                 elif Hdmlist[-1]==2:    #行车道
@@ -197,6 +201,8 @@ def TransEiDatToHintTf(get3DdataFromDatfile, path_tfsaved, path_EiAre):
                         slope_AdjacentPoints=dist_AdjacentPoints/high_AdjacentPoints
                     except ZeroDivisionError:
                         Tflist[14+j]=dist_AdjacentPoints
+                    except IndexError:
+                        print(1)
                     else:
                         if slope_AdjacentPoints>=24 and UpSlopeStatus==0: #第一级边坡坡度缓于1:24判断为碎落台
                             Tflist[14+j]=dist_AdjacentPoints

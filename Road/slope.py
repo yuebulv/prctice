@@ -92,7 +92,7 @@ if __name__ == "__main__":
         slopefilepath_list = prjpath.split('\\')
         regx = r'(.+)(?=\.\w+)'
         prjname = re.findall(regx, slopefilepath_list[-1])[0]
-        prjname = prjname.replace('+', '').replace('.', '').replace(':', '')
+        prjname = prjname.replace('+', '').replace('.', '').replace(':', '').replace(' ', '').replace('-', '')
         try:
             prjname += '_'+gui_confirm.gui_input('请输入项目名称')
             print(f'prjname:{prjname}')

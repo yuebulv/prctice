@@ -137,10 +137,17 @@ def grop_hdms_lines(hdm_data_path, layer_name_zxx='图层中心线', layer_name=
                 err_txt = 'hdm_separated_road_handle错误：分离式路基中心线X坐标与路基中心线X坐标相等，无法判断断面在分离式左侧还是右侧，请手动修改'
                 err_list.append(err_txt)
                 continue
-
+        # 公路BIM V1.5版本生成的横断面文字注释格式与V1.2不同，引起hdm_lines[0]中含有设计高程的错误
+        loc_debug_20210625 = hdm_lines[0].find('设计高程')
+        hdm_lines[1] = hdm_lines[1] + hdm_lines[0][loc_debug_20210625:-1]
+        hdm_lines[0] = hdm_lines[0][0:loc_debug_20210625]
         regx_chainage_dig = r'(?<!0)\d+\.*\d*'
         chainage_dig = re.findall(regx_chainage_dig, hdm_lines[0], re.MULTILINE)
         chainage_dig = float("".join(chainage_dig))
+        # try:
+        #     chainage_dig = float("".join(chainage_dig))
+        # except ValueError:
+        #     print(1)
         xyz_line_chainage_dic['chainage'] = chainage_dig
         # xyz_line_chainage_dic['chainage'] = hdm_lines[0]
         xyz_line_chainage_dic['text'] = hdm_lines[1]
@@ -161,7 +168,10 @@ def grop_hdms_lines(hdm_data_path, layer_name_zxx='图层中心线', layer_name=
                 exp_2 = xyz_point[0] + symbol_2
                 if eval(exp) and eval(exp_2):   # 过虑分离式路基
                     xyz_point = list(map(float, xyz_point))  # 转为数值形数据
-                    if float(xyz_point[0]) == zxx_x:  # 中间点
+                    # if float(xyz_point[0]) == zxx_x:  # 中间点  # 原代码
+                    # 原代码存在问题：xyz_point[0]与zxx_x非常接近时，无法判断其属于左右还是右侧，左或右侧会漏掉此点
+                    # 修改后代码将类似点同时加入左右侧，多余点通过后续代码删除。
+                    if abs(float(xyz_point[0]) - zxx_x) <= 0.0005:  # 中间点 # 修改后代码20210707
                         left_line_points.append(list(xyz_point))
                         right_line_points.append(list(xyz_point))
                         xyz_line_chainage_dic['zxx_xyz'] = xyz_point
@@ -227,6 +237,10 @@ def tagging_wall_in_hdm_xyz(xyz_line, zxx_xyz, wall_filters='default'):
     else:
         filters = wall_filters
     len_xyz_line = len(xyz_line)
+    # try:
+    #     len_xyz_line = len(xyz_line)
+    # except TypeError:
+    #     print(1)
     if len_xyz_line > 3:
         xyz_line.extend([xyz_line[0], xyz_line[1], xyz_line[2]])
         for i in range(len_xyz_line):
@@ -302,6 +316,8 @@ def del_drainage_outside_frame(lines):
         print(f'l:{line}')
         line = correct_special_shape(line)
         print(f'c:{line}')
+        if len(line) < 2:
+            continue
         i_change_index_list = [[0, 0, 0]]  # [X值递减或递增，i_start,i_end]
         data_inner_outer_frame = [[0, 0, 0, 0], [0, 0, 0, 0]]  # [-2或2,i_start_in_line,i_end_in_line,min_y] 表示
         x_direction = 0
@@ -523,7 +539,12 @@ def del_point_of_dif_direction_in_line(line):
         j = 1
         while line[j][0] - line[j-1][0] == 0:
             j += 1
-        new_line = line[(j-1):(j+1)]
+            if j > len(line)-1:
+                return []
+        # 修改原因：水沟起始线为垂直时，会全部过虑。修改后目标：水沟起始线为垂直时，保留一条垂直沟壁20210630
+        temp = max(0, j-2)
+        new_line = line[temp:(j+1)]
+        # new_line = line[(j-1):(j+1)] 修改前代码
         for i in range(j+1, len(line)):
             if (line[i][0] - new_line[-1][0])*(new_line[-1][0] - new_line[-2][0]) > 0:
                 new_line.append(line[i])
@@ -621,12 +642,17 @@ def mark_road_item_in_line(line_origin, subgrade_width):
             temp = line[i][3]
         except IndexError:
             line[i].append(8)
+    try:
+        line[0][3]
+    except IndexError:
+        line[0].append(line[1][-1])
     # 删除平台截水沟，水沟两侧最近边坡（非平台）坡度一致时判定为平台截水沟
     i_drain_list = []
     switch = True
     item_and_slope_of_last_point = [0, 9999]  # [6, 坡度]
     item_and_slope_of_next_point = [0, 9999]
     for i in range(1, len(line)):
+        print(f'line:{line}.i:{i}')
         if line[i][3] == 7:
             i_drain_list.append(i)
         elif len(i_drain_list) > 0:
@@ -757,7 +783,7 @@ def correct_special_shape(line_origin):
             del line[i]
     # 连续6个点，中间4个点Y值相等，两端Y值高于中间4点，则删除中间4点
     i_line_del = []
-    if len(line) > 5:
+    if len(line) > 5 and len(line) != 11:
         for i in range(5, len(line)):
             if line[i-4][1] == line[i-3][1] == line[i-2][1] == line[i-1][1]:
                 if line[i-5][1] > line[i-4][1] and line[i][1] > line[i-4][1]:
@@ -796,10 +822,25 @@ def main(hdm_data_path):
     for hdm in hdms_lines[0]:   # 每个桩号
         print(f'hdm:{hdm}')
         for key_left_Or_right in ['left_lines', 'right_lines']:
-            for i in range(len(hdms_lines[0][hdm][key_left_Or_right])):
-                hdms_lines[0][hdm][key_left_Or_right][i] = del_repeat_point_in_line(hdms_lines[0][hdm][key_left_Or_right][i])
+            # for i in range(len(hdms_lines[0][hdm][key_left_Or_right])):
+            i = 0
+            while i <= len(hdms_lines[0][hdm][key_left_Or_right]):
+                try:
+                    hdms_lines[0][hdm][key_left_Or_right][i]
+                except IndexError:
+                    break
+                else:
+                    hdms_lines[0][hdm][key_left_Or_right][i] = del_coincide_point_in_line(
+                        hdms_lines[0][hdm][key_left_Or_right][i], tolerance=0.01)
+                    hdms_lines[0][hdm][key_left_Or_right][i] = del_repeat_point_in_line(hdms_lines[0][hdm][key_left_Or_right][i])
+                    if hdms_lines[0][hdm][key_left_Or_right][i] is None:
+                        del hdms_lines[0][hdm][key_left_Or_right][i]
+                        continue
                 line_xyz = copy.deepcopy(hdms_lines[0][hdm][key_left_Or_right][i])  # 每条设计线
-                wall_line = tagging_wall_in_hdm_xyz(line_xyz, hdms_lines[0][hdm]['zxx_xyz'])
+                if line_xyz is None:
+                    wall_line = ''
+                else:
+                    wall_line = tagging_wall_in_hdm_xyz(line_xyz, hdms_lines[0][hdm]['zxx_xyz'])
                 if wall_line:
                     print('原：', hdms_lines[0][hdm][key_left_Or_right][i])
                     hdms_lines[0][hdm][key_left_Or_right][i] = wall_line  # 用墙背线替换挡墙线
@@ -836,6 +877,7 @@ def main(hdm_data_path):
                                     j_correct -= 1
                         j_correct += 1
                     break  # 默认断面左侧或者右侧只有一个挡墙
+                i += 1
     # 2 修改带盖板边沟|_  _| 为 | |，以便转为dat数据
     #                |_|     |_|
     for hdm in hdms_lines[0]:  # 每个桩号
@@ -959,8 +1001,11 @@ def main(hdm_data_path):
             hdms_lines[0][hdm]['zxx_xyz'][1] = hdms_lines[0][hdm][key_left_Or_right][0][0][1]
             hdms_lines[0][hdm]['zxx_xyz'][2] = hdms_lines[0][hdm][key_left_Or_right][0][0][2]
         except IndexError:
-            hdms_lines[0][hdm]['zxx_xyz'][1] = hdms_lines[0][hdm]['left_lines'][0][0][1]
-            hdms_lines[0][hdm]['zxx_xyz'][2] = hdms_lines[0][hdm]['left_lines'][0][0][2]
+            try:
+                hdms_lines[0][hdm]['zxx_xyz'][1] = hdms_lines[0][hdm]['left_lines'][0][0][1]
+                hdms_lines[0][hdm]['zxx_xyz'][2] = hdms_lines[0][hdm]['left_lines'][0][0][2]
+            except IndexError:
+                continue
 
     hdm_chainages = sorted(hdms_lines[0].keys())
     print(f'hdm_chainages:{hdm_chainages}')
