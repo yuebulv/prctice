@@ -2,7 +2,7 @@
 # 1 从dat文件中获取逐桩横断面三维数据get3DdataFromDatfile(path)
     # 1.1 用正则将每个横断面dat数据放入list res中
 # 2 将逐桩横断面三维数据转为纬地3dr格式数据trans3DdataTo3drFile(get3DdataFromDatfile)
-    # 2.1 用正刚将每个横断面的dat数据中桩号、三维坐标放入list 中（key，HdmPoints_xyz）
+    # 2.1 用正则将每个横断面的dat数据中桩号、三维坐标放入list 中（key，HdmPoints_xyz）
     # 2.2 将list中的横断面三维数据转为3dr格式数据
     # 2.3 将list中的横断面三维数据转为tf格式数据
         #2.3.1 先转非填、挖面积、中桩填挖类数据
