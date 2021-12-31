@@ -97,7 +97,5 @@ class Stats:
 '''
 
 if __name__ == "__main__":
-    a=[1,2]
-    b=[1,2,3]
-    if a == b:
-        print(1)
+    a = eval(1/2)
+    print(a)

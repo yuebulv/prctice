@@ -86,3 +86,9 @@ def regx_is_key_in_dmx(key):
     else:
         regx = f'^(?<!\w)\s*({key}0*)(?!\w)'
     return regx
+
+
+# 纬地wid文件中查找加宽数据，自动分左右
+def regx_wide():
+    regx = f'\]([\d.\s]+[^\[\]]+)'
+    return regx
