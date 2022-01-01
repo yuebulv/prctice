@@ -56,91 +56,6 @@ def mileage_clain_change(mileage):
     return mileage
 
 
-def modify_wideFile_2(wide_mile_range_list: list, position: int, change_width, wide_file_data, change_style='line'):
-    '''
-    :param wide_mile_range_list: [渐变段起点桩号, 等加宽起点桩号, 等加宽止点桩号, 渐变段止点桩号]
-    :param position: 加宽部位
-    :param change_width: 加宽宽度
-    :param wide_file_data: 加宽前的数据
-    :param change_style: 加宽方式，默认为线性加宽
-    :return: 加宽后的数据
-    '''
-    new_wide_date_list = []
-    mileage_in_new_wide_date_list = []
-    for i in range(len(wide_mile_range_list)):
-        wide_mile_range_list[i] = float(wide_mile_range_list[i])
-    wide_rows_list = re.findall('.+', wide_file_data)
-    for wide_row in wide_rows_list:
-        wide_row = re.sub('\t+', ' ', wide_row)
-        wide_row = re.sub(' +', ' ', wide_row)
-        wide_row_list = re.split(' ', wide_row.strip())
-        # print("wide_row_list[0]", wide_row_list[0])
-        # print("wide_row", wide_row)
-        # wide_row_list[0] = float(wide_row_list[0])
-        for j in range(len(wide_row_list)):
-            try:
-                wide_row_list[j] = float(wide_row_list[j])
-            except:
-                pass
-        # print('wide_mile_range_list:', wide_mile_range_list)
-        # print('wide_row_list[0]:', wide_row_list[0])
-        if wide_mile_range_list[0] < wide_row_list[0] < wide_mile_range_list[1]:  # 前渐变段
-            print('wide_row_list[0]:', wide_row_list[0])
-            if wide_mile_range_list[0] in mileage_in_new_wide_date_list is False:
-                add_row_wide_data = get_insert_wide_row(wide_mile_range_list[0], new_wide_date_list[-1], wide_row_list)
-                new_wide_date_list.append(add_row_wide_data)
-                new_wide_date_list.append(add_row_wide_data)
-                mileage_in_new_wide_date_list.append(add_row_wide_data[0])
-                print(1)
-            print(2)
-            widen_width = calculate_widen_width(wide_row_list[0], wide_mile_range_list[0], wide_mile_range_list[1],
-                                                change_width)
-            wide_row_list[position] += widen_width
-            # new_wide_date_list.append(wide_row_list)
-            # mileage_in_new_wide_date_list.append(wide_row_list[0])
-        elif wide_mile_range_list[1] <= wide_row_list[0] <= wide_mile_range_list[2]:  # 加宽段
-            wide_row_list[position] += change_width
-            if wide_mile_range_list[1] in mileage_in_new_wide_date_list:
-                pass
-            else:
-                print('222222')
-                add_row_wide_data = get_insert_wide_row(wide_mile_range_list[1], new_wide_date_list[-1], wide_row_list)
-                # add_row_wide_data[position] += change_width
-                new_wide_date_list.append(add_row_wide_data)
-                new_wide_date_list.append(add_row_wide_data)
-                mileage_in_new_wide_date_list.append(add_row_wide_data[0])
-            # new_wide_date_list.append(wide_row_list)
-            # mileage_in_new_wide_date_list.append(wide_row_list[0])
-        elif wide_mile_range_list[2] < wide_row_list[0] <= wide_mile_range_list[3]:  # 后渐变段
-            if wide_mile_range_list[2] in mileage_in_new_wide_date_list:
-                pass
-            else:
-                add_row_wide_data = get_insert_wide_row(wide_mile_range_list[2], new_wide_date_list[-1], wide_row_list)
-                add_row_wide_data[position] += new_wide_date_list[-1][position]
-                new_wide_date_list.append(add_row_wide_data)
-                new_wide_date_list.append(add_row_wide_data)
-                mileage_in_new_wide_date_list.append(add_row_wide_data[0])
-            widen_width = calculate_widen_width(wide_row_list[0], wide_mile_range_list[2], wide_mile_range_list[3],
-                                                change_width)
-            wide_row_list[position] += widen_width
-            # new_wide_date_list.append(wide_row_list)
-            # mileage_in_new_wide_date_list.append(wide_row_list[0])
-        elif wide_mile_range_list[3] < wide_row_list[0]:
-            if wide_mile_range_list[3] in mileage_in_new_wide_date_list:
-                pass
-            else:
-                add_row_wide_data = get_insert_wide_row(wide_mile_range_list[3], new_wide_date_list[-1], wide_row_list)
-                add_row_wide_data[position] += wide_row_list[position]
-                new_wide_date_list.append(add_row_wide_data)
-                new_wide_date_list.append(add_row_wide_data)
-                mileage_in_new_wide_date_list.append(add_row_wide_data[0])
-            # new_wide_date_list.append(wide_row_list)
-            # mileage_in_new_wide_date_list.append(wide_row_list[0])
-        mileage_in_new_wide_date_list.append(wide_row_list[0])
-        new_wide_date_list.append(wide_row_list)
-    return new_wide_date_list
-
-
 def modify_wideFile(wide_mile_range_list: list, position: int, change_width, wide_file_data, change_style='line'):
     '''
     :param wide_mile_range_list: [渐变段起点桩号, 等加宽起点桩号, 等加宽止点桩号, 渐变段止点桩号]
@@ -155,6 +70,10 @@ def modify_wideFile(wide_mile_range_list: list, position: int, change_width, wid
     add_wide_rows_list = []
     for i in range(len(wide_mile_range_list)):
         wide_mile_range_list[i] = float(wide_mile_range_list[i])
+    try:
+        wide_rows_list = re.findall('.+', wide_file_data)
+    except:
+        print(wide_file_data)
     wide_rows_list = re.findall('.+', wide_file_data)
     # 1.将节点桩号数据和wid文件中数据加入到new_wide_date_list
     for wide_row in wide_rows_list:
@@ -178,13 +97,67 @@ def modify_wideFile(wide_mile_range_list: list, position: int, change_width, wid
             add_wide_rows_list.append(add_wide_row_list)
     new_wide_date_list = sorted(new_wide_date_list, key=itemgetter(0))
     # print('mileage_in_new_wide_date_list:', mileage_in_new_wide_date_list)
-    for tem in new_wide_date_list:
-        print(tem)
-    # 2.对new_wide_date_list进行加宽处理
+    # for tem in new_wide_date_list:
+    #     print(tem)
+    # 2.对节点桩号数据宽度进行修正（线性插值）
     for add_wide_row_list in add_wide_rows_list:
-
-        print(new_wide_date_list.index(add_wide_row_list))
-    return new_wide_date_list
+        add_wide_row_index = new_wide_date_list.index(add_wide_row_list)
+        last_wide_row_index = add_wide_row_index
+        while True:
+            last_wide_row_index -= 1
+            try:
+                new_wide_date_list[last_wide_row_index]
+            except IndexError:
+                last_wide_row_index = ''
+                break
+            if new_wide_date_list[last_wide_row_index] in add_wide_rows_list:
+                pass
+            else:
+                break
+        next_wide_row_index = add_wide_row_index
+        while True:
+            next_wide_row_index += 1
+            try:
+                new_wide_date_list[next_wide_row_index]
+            except IndexError:
+                next_wide_row_index = ''
+                break
+            if new_wide_date_list[next_wide_row_index] in add_wide_rows_list:
+                pass
+            else:
+                break
+        try:
+            last_wide_row = new_wide_date_list[last_wide_row_index]
+        except IndexError:
+            try:
+                last_wide_row = new_wide_date_list[next_wide_row_index]
+            except IndexError:
+                last_wide_row = new_wide_date_list[0]
+        try:
+            next_wide_row = new_wide_date_list[next_wide_row_index]
+        except IndexError:
+            try:
+                next_wide_row = new_wide_date_list[last_wide_row_index]
+            except IndexError:
+                next_wide_row = new_wide_date_list[0]
+        insert_wide_row = get_insert_wide_row(add_wide_row_list[0], last_wide_row, next_wide_row)
+        new_wide_date_list[add_wide_row_index] = insert_wide_row
+        insert_wide_row_copy = copy.deepcopy(insert_wide_row)
+        new_wide_date_list.insert(add_wide_row_index, insert_wide_row_copy)
+        # print(new_wide_date_list.index(add_wide_row_list))
+    # 3.对new_wide_date_list进行加宽处理
+    for wide_row in new_wide_date_list:
+        if wide_mile_range_list[0] < wide_row[0] < wide_mile_range_list[1]:  # 前渐变段
+            widen_width = calculate_widen_width(wide_row[0], wide_mile_range_list[0], wide_mile_range_list[1], change_width)
+            wide_row[position] += widen_width
+        elif wide_mile_range_list[1] <= wide_row[0] <= wide_mile_range_list[2]:  # 加宽段
+            wide_row[position] += change_width
+        elif wide_mile_range_list[2] < wide_row[0] < wide_mile_range_list[3]:  # 后渐变段
+            widen_width = calculate_widen_width(wide_row[0], wide_mile_range_list[2], wide_mile_range_list[3], -change_width)
+            wide_row[position] += widen_width + change_width
+        wide_row[position] = round(wide_row[position], 3)
+    new_wide_date = str(new_wide_date_list).replace(']', '\n').replace('[', '').replace(',', ' ')
+    return new_wide_date
 
 
 def get_insert_wide_row(insert_mileage, last_wide_row: list, next_wide_row: list):
@@ -213,6 +186,7 @@ def calculate_widen_width(mileage, start_mileage, end_mileage, change_width, cha
             widen_width = (mileage-start_mileage)/(end_mileage-start_mileage)*change_width
         except ZeroDivisionError:
             widen_width = 0
+    widen_width = round(widen_width, 3)
     return widen_width
 
 
@@ -221,9 +195,9 @@ def error_log(err_str):
         file.write(err_str)
 
 
-def main():
-    wide_file_path = '踏石路.WID'
-    widen_range_file_path = '护栏.txt'
+def main(wide_file_path, widen_range_file_path):
+    # wide_file_path = '踏石路.WID'
+    # widen_range_file_path = '护栏.txt'
     new_wide_file_path = 'new' + wide_file_path
 
     wide_model = HintWide()
@@ -256,8 +230,8 @@ def main():
         wide_mile_range_list = wide_mile_range(widen_dic['start_mile'], widen_dic['end_mile'], widen_dic['changeWidth'], widen_dic['change_rate'])
         # print(wide_mile_range_list)
         # print(widen_dic['change_rate'])
-        new_wide_date_list = modify_wideFile(wide_mile_range_list, position=widen_dic['position'], change_width=widen_dic['changeWidth'], wide_file_data=list_file_data[widen_dic['LOR']])
-        list_file_data[widen_dic['LOR']] = new_wide_date_list
+        new_wide_date = modify_wideFile(wide_mile_range_list, position=widen_dic['position'], change_width=widen_dic['changeWidth'], wide_file_data=list_file_data[widen_dic['LOR']])
+        list_file_data[widen_dic['LOR']] = new_wide_date
         # print(new_wide_date_list)
 
     with open(new_wide_file_path, 'w') as new_file:
@@ -267,16 +241,16 @@ def main():
         new_file.write('[RIGHT]\n')
         new_file.write(str(list_file_data[1]).replace(']', '\n').replace('[', '').replace(',', '\t'))
 
-
+import tkinter.filedialog
 if __name__ == "__main__":
-    main()
+    wide_file_path = tkinter.filedialog.askopenfilename()
+    widen_range_file_path =tkinter.filedialog.askdirectory()
+    if widen_range_file_path is True and wide_file_path is True:
+        main(wide_file_path, widen_range_file_path)
     # a = list(range(5))
     # print(a)
-    # if 1 in a is False:
+    # if 4 in a:
     #     print(1)
     # else:
     #     print(2)
 
-    # students = [[3, 'Jack', 12], [2, 'Rose', 13], [1, 'Tom', 10], [5, 'Sam', 12], [4, 'Joy', 8]]
-    # t = sorted(students, key=itemgetter(2))
-    # print(t)
