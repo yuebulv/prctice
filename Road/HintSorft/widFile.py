@@ -2,7 +2,8 @@ from roadglobal import regx_wide
 import re
 import copy
 from operator import itemgetter
-
+from tkinter import filedialog, messagebox
+import os
 '''
 1.读入宽度文件
 def read_wide_file():
@@ -87,7 +88,11 @@ def modify_wideFile(wide_mile_range_list: list, position: int, change_width, wid
                 pass
         mileage_in_new_wide_date_list.append(wide_row_list[0])
         new_wide_date_list.append(wide_row_list)
+    start_mileage = float(new_wide_date_list[0][0])
+    end_mileage = float(new_wide_date_list[-1][0])
     for mileage_add in wide_mile_range_list:
+        if mileage_add <= start_mileage or mileage_add >= end_mileage:
+            continue
         if mileage_add in mileage_in_new_wide_date_list:
             pass
         else:
@@ -128,17 +133,17 @@ def modify_wideFile(wide_mile_range_list: list, position: int, change_width, wid
                 break
         try:
             last_wide_row = new_wide_date_list[last_wide_row_index]
-        except IndexError:
+        except (IndexError, TypeError):
             try:
                 last_wide_row = new_wide_date_list[next_wide_row_index]
-            except IndexError:
+            except (IndexError, TypeError):
                 last_wide_row = new_wide_date_list[0]
         try:
             next_wide_row = new_wide_date_list[next_wide_row_index]
-        except IndexError:
+        except (IndexError, TypeError):
             try:
                 next_wide_row = new_wide_date_list[last_wide_row_index]
-            except IndexError:
+            except (IndexError, TypeError):
                 next_wide_row = new_wide_date_list[0]
         insert_wide_row = get_insert_wide_row(add_wide_row_list[0], last_wide_row, next_wide_row)
         new_wide_date_list[add_wide_row_index] = insert_wide_row
@@ -198,7 +203,9 @@ def error_log(err_str):
 def main(wide_file_path, widen_range_file_path):
     # wide_file_path = '踏石路.WID'
     # widen_range_file_path = '护栏.txt'
-    new_wide_file_path = 'new' + wide_file_path
+
+    new_wide_file_path = 'new' + os.path.basename(wide_file_path)
+    new_wide_file_path = os.path.join(os.path.dirname(wide_file_path), new_wide_file_path)
 
     wide_model = HintWide()
     list_file_data = read_wide_file(wide_file_path)
@@ -241,12 +248,15 @@ def main(wide_file_path, widen_range_file_path):
         new_file.write('[RIGHT]\n')
         new_file.write(str(list_file_data[1]).replace(']', '\n').replace('[', '').replace(',', '\t'))
 
-import tkinter.filedialog
+
 if __name__ == "__main__":
-    wide_file_path = tkinter.filedialog.askopenfilename()
-    widen_range_file_path =tkinter.filedialog.askdirectory()
-    if widen_range_file_path is True and wide_file_path is True:
+    wide_file_path = filedialog.askopenfilename(title='选择wid文件', filetypes=[('wid', '*.wid')])
+    widen_range_file_path = filedialog.askopenfilename(title='选择护栏、错车道等加宽文件', filetypes=[('txt', '*.txt')])
+
+    if widen_range_file_path != '' and wide_file_path != '':
         main(wide_file_path, widen_range_file_path)
+        messagebox.showinfo('提示', '处理成功')
+
     # a = list(range(5))
     # print(a)
     # if 4 in a:
