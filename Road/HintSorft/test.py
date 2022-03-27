@@ -1,16 +1,16 @@
-import TransEiDatToHint3dr
+# import TransEiDatToHint3dr
 from tkinter import *
 import tkinter as tk
 from tkinter import filedialog
 import os
-import road
+# import road
 import pymysql
 import math
-import mysql
+# import mysql
 import copy
 import glob
-import roadglobal
-import gui_confirm
+import HintSorft.roadglobal as roadglobal
+import HintSorft.gui_confirm as gui_confirm
 from tkinter import filedialog
 # import filedialog
 class Stats:
@@ -86,6 +86,10 @@ class Stats:
                     \n薪资20000 以下的有：\n{salary_below_20k}'''
                           )
 
+
+def fun():
+    ss = roadglobal.regx_wide()
+    return ss
 '''
 下一步改进方向
 1、断链处理存在问题
@@ -97,5 +101,5 @@ class Stats:
 '''
 
 if __name__ == "__main__":
-    a = eval(1/2)
-    print(a)
+    sss = fun()
+    print(sss)

@@ -1,4 +1,4 @@
-from roadglobal import regx_wide
+from HintSorft.roadglobal import regx_wide
 import re
 import copy
 from operator import itemgetter
@@ -81,13 +81,17 @@ def modify_wideFile(wide_mile_range_list: list, position: int, change_width, wid
         wide_row = re.sub('\t+', ' ', wide_row)
         wide_row = re.sub(' +', ' ', wide_row)
         wide_row_list = re.split(' ', wide_row.strip())
+        statue = True
         for j in range(len(wide_row_list)):
             try:
                 wide_row_list[j] = float(wide_row_list[j])
-            except:
-                pass
-        mileage_in_new_wide_date_list.append(wide_row_list[0])
-        new_wide_date_list.append(wide_row_list)
+            except ValueError:
+                statue = False
+                print('非数字wide_row_list', wide_row_list)
+                break
+        if statue is True:
+            mileage_in_new_wide_date_list.append(wide_row_list[0])
+            new_wide_date_list.append(wide_row_list)
     start_mileage = float(new_wide_date_list[0][0])
     end_mileage = float(new_wide_date_list[-1][0])
     for mileage_add in wide_mile_range_list:

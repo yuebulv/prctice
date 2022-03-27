@@ -47,8 +47,8 @@
     1、多段线：路面结构、路床、占地线；
     2、直线：中心线、分离式路基线、设计线、挡墙、水沟；
 '''
-import road
-import roadglobal
+import HintSorft.road as road
+import HintSorft.roadglobal as roadglobal
 import re
 import operator
 import copy
@@ -86,7 +86,7 @@ def grop_hdms_lines(hdm_data_path, layer_name_zxx='图层中心线', layer_name=
     try:
         file = open(hdm_data_path, 'r')
     except:
-        msgbox=road.gui_filenotfine(f'{hdm_data_path}文件不存在')
+        msgbox = road.gui_filenotfine(f'{hdm_data_path}文件不存在')
         return ''
     filedata = file.read().lower()
     regx = roadglobal.regx_chainage_between_chainage

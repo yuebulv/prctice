@@ -33,7 +33,9 @@ def getTheExitAndEntranceOfTunnelNearbyChainage(filepath, len, respath):
     file_save.close()
     file.close()
 
-filepath = r'F:\1.txt'
-len = 50
-respath = r'F:\res.sta'
-getTheExitAndEntranceOfTunnelNearbyChainage(filepath, len, respath)
+
+if __name__ == "__main__":
+    filepath = r'F:\1.txt'
+    len = 50
+    respath = r'F:\res.sta'
+    getTheExitAndEntranceOfTunnelNearbyChainage(filepath, len, respath)
