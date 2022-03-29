@@ -1054,7 +1054,7 @@ if __name__ == "__main__":
     root = tk.Tk()
     root.withdraw()
     my_filetypes = [('text files', '.txt'), ('all files', '.*')]
-    answer_file = filedialog.askopenfilename(parent=root, title="Please select a file:", filetypes=my_filetypes)
+    answer_file = filedialog.askopenfilename(parent=root, title="Please select a file_public:", filetypes=my_filetypes)
     if os.path.exists(answer_file):
         err_list = main(answer_file)['err_list']
         hdm_data_path = answer_file.replace('\\', '/')

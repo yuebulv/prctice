@@ -78,7 +78,9 @@ import HintSorft.gui_confirm as gui_confirm
 from tkinter import filedialog
 logName = ''
 logPath = ''
-if __name__ == "__main__":
+
+
+def main():
     root = tk.Tk()
     root.withdraw()
     folderpath = filedialog.askdirectory(title='请选择prj文件所在文件夹')
