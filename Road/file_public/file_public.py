@@ -4,7 +4,7 @@ import os
 from itertools import chain
 
 
-def getData_list(path, regx, *sortcol, reverse=True, repetition=True):
+def getData_list(path, regx, *sortcol, reverse=True, repetition=True, en="UTF-8"):
     '''
     :param path:文件路径
     :param regx:筛选正则表达式
@@ -15,7 +15,7 @@ def getData_list(path, regx, *sortcol, reverse=True, repetition=True):
     '''
     if not os.path.exists(path):
         return f"{path}文件不存在"
-    with open(path, 'r') as file:
+    with open(path, 'r', encoding=en) as file:
         fileData = file.read()
     fileData_list = re.findall(regx, fileData, re.MULTILINE)
     # 去重
@@ -38,11 +38,5 @@ def getData_list(path, regx, *sortcol, reverse=True, repetition=True):
     return result
 
 
-if __name__ == "__main__":
-    path = r"F:\20211124长寿农村道路\纬地\黄水路-20220321新增\踏石路_长寿黄水路slopedata.txt"
-    excelRange_output = 'range("ba9")'
-    regx = ".+(?:路肩墙|护肩|路堤墙|护脚|类型).+"
-    result = getData_list(path, regx, repetition=False)
-    print(result)
-    # for tem in result:
-    #     print(tem)
+def getFileData_list(path, regx, *sortcol, reverse=True, repetition=True, en="UTF-8"):
+    pass
