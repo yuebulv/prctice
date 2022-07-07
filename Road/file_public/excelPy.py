@@ -1,8 +1,29 @@
 import pandas as pd
 import numpy as np
+from pathlib import Path
+import os
 
-# path = r"F:\20211124长寿农村道路\纬地\黄水路-20220321新增\每公里土石方数量表1.xlsx"
-# data = pd.read_excel(path, header=[3, 4, 5])
+
+def creatFileFolders(path_excel, sheetName):
+    # 功能：根据excel表中层级关系，批量建文件夹。如：excel表中列：省、市、县、村，建议文件夹 省/市/县/村
+    path_excel = path_excel
+    data = pd.read_excel(path_excel, sheet_name=sheetName)
+    # data = data_all.iloc[866:, [0, 1, 2, 4]]
+    # 未处理合并单元格后nan值问题
+    paths_series = data.iloc[:, 0].map(str) + "\\" + data.iloc[:, 1].map(str) + "\\" + data.iloc[:, 2].map(str) + "\\" + data.iloc[:, 3].map(str)
+
+    paths_series = paths_series.head()  # *****
+    for newPath in paths_series:
+        newPath = Path(path_excel).parent.joinpath(newPath)
+        if not os.path.exists(newPath):
+            os.makedirs(newPath)
+
+
+if __name__ == "__main__":
+    path_excel = r"D:\X项目\20220528大竹安保工程\W-外业成果\20220614安全防护调查表（路侧护栏）汇总表-y.xlsx"
+    sheetName = "Sheet1"
+    creatFileFolders(path_excel, sheetName)
+
 # # pd.set_option("display.max_colwidth", 1000)
 # # # 显示所有列
 # # pd.set_option('display.max_columns', 8)
@@ -76,10 +97,10 @@ import numpy as np
 # print(s.astype('string'))
 # print(s.astype('string').str[1])
 
-s1 = pd.Series(['a','b'])
-s2 = pd.Series(['cat','dog'])
-s1.str.cat(s2,sep='-')
-s2.index = [1, 2]
-print(s1)
-print(s2)
-print(s1.str.cat(s2, sep='-', na_rep='?', join='outer'))
+# s1 = pd.Series(['a','b'])
+# s2 = pd.Series(['cat','dog'])
+# s1.str.cat(s2,sep='-')
+# s2.index = [1, 2]
+# print(s1)
+# print(s2)
+# print(s1.str.cat(s2, sep='-', na_rep='?', join='outer'))

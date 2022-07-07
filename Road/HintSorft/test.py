@@ -9,24 +9,28 @@ from itertools import chain
             
 
 '''
+import numpy as np
+from geopy.distance import geodesic
+import math
 
 
-def loadDataToExcel_regx(path, *sortcol, repetition=True):
-    print("path:",path)
-    print('rep:',repetition)
-    print('sort:',sortcol)
-    print(*sortcol)
+def triangleAre(a: float, b: float, c: float):
+    # 根据三边长度求面积
+    if a + b > c and a + c > b and b + c > a:
+        p = (a + b + c) / 2
+        area = (p * (p - a) * (p - b) * (p - c))**0.5
+        return area
+    else:
+        return None
 
 
 if __name__ == "__main__":
-    list_tem = [["a",2,5], ["k",5,2],["w",2,3],["w",1,3],["a",1,3]]
-    ss = sorted(list_tem, key=itemgetter(2,1,0))
-    print(ss)
-    # my_list = [2, 1, 0]
-    my_list = (2, 1, 0)
-    ss1 = sorted(list_tem, key=itemgetter(*my_list), reverse=True)
-    print(ss1)
-    # tem = [2,1,0]
-    # tem1 = (tem,[2])
-    # tem2 =list(chain.from_iterable(tem1))
-    print(list([7]))
+    a = []
+    b = {}
+    b[1]= 2
+    c = ['3', '4']
+    # a.append(b)
+    a.append(c)
+    d = " ".join(c)
+    print(a)
+    print(d)
