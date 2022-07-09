@@ -14,6 +14,10 @@ import re
 import copy
 from geopy.distance import geodesic
 import math
+from pathlib import Path
+import os
+import pandas as pd
+import shutil
 
 
 class Setting():
@@ -22,6 +26,8 @@ class Setting():
     regx_picDescription = "护栏"
     outputPath = r"D:\X项目\20220528大竹安保工程\W-外业成果\5组.txt"
     kmlPath = r"D:\X项目\20220528大竹安保工程\W-外业成果\5组.kml"
+    path_group_excel = r"D:\X项目\20220528大竹安保工程\W-外业成果\20220614安全防护调查表（路侧护栏）汇总表-y.xlsx"
+    sheetname = "Sheet1"
 
 
 class Operation_kml():
@@ -128,7 +134,44 @@ def isPicBelongLine(point: list, line_start: list, line_end: list, toleranceRadi
     #     distance_min = distance
 
 
-if __name__ == '__main__':
+def findDataFromExcel(path_excel, sheetname, key="路线编号", col="all") -> pd.Series:
+    # key不区分大小写
+    data = pd.read_excel(path_excel, sheet_name=sheetname)
+    key = key.upper()
+    try:
+        res = data.loc[data["路线编号"] == key].iloc[0, :4]  # data[key=="C043511724", :]
+    except IndexError:
+        key = key.lower()
+        try:
+            res = data.loc[data["路线编号"] == key].iloc[0, :4]
+        except IndexError:
+            res = pd.Series([], dtype="float64")
+    return res
+
+
+def move_file(target_path, source_path):
+    pass
+
+
+def getTargetPathFromList(pic_inf_list):
+    # 功能：从list中得到目标path ,list 格式如main中res_picName_description_lineId_list
+    len_of_line_number = len(pic_inf_list[2])
+    new_line_number = "C000511724"
+    if len_of_line_number == 2:  # ********************************************************需要精减
+        new_line_number = "C0" + str(pic_inf_list[2]) + "511724"
+    elif len_of_line_number == 3:
+        new_line_number = "C" + str(pic_inf_list[2]) + "511724"
+    elif len_of_line_number == 6:
+        pass
+    else:
+        return None
+    target_path_series = findDataFromExcel(Setting.path_group_excel, sheetname=Setting.sheetname, key=new_line_number)
+    target_path = "\\".join(target_path_series.astype(str).tolist())
+    target_path = Path(Setting.kmlPath).parent.joinpath(target_path).joinpath(pic_inf_list[4])
+    return target_path
+
+
+def main():
     """
     1得到所有路线（name,坐标）
     2得到含关键字照片（name,坐标,description,OvAttaItem）
@@ -152,6 +195,7 @@ if __name__ == '__main__':
                 lines_dic[placeMark.name] = latlng_list
         # print(len(lines_dic))
         # print(lines_dic.keys())-----------------------
+        print("step1:得到所有路线（name,坐标）,Done!")
 
         # step2:得到含关键字照片（name,坐标,description,OvAttaItem）-------------------
         picPlaceMarkIndex_list = []
@@ -172,9 +216,10 @@ if __name__ == '__main__':
                 # print(placeMark[index].Point.coordinates)
                 # for item in placeMark[index].OvAttr.OvAttaList.OvAttaItem:
                 #     print(item)
+        print("step2:得到含关键字照片（name,坐标,description,OvAttaItem）,Done!")
 
         # step3:判断照片桩号，分析description内容---------------------------------------
-        res_picName_description_lineId_list = ["照片标签名称", "描述", "所属路线名字", "照片标签与路线距离", "照片桩号", "照片路径"]
+        res_picName_description_lineId_list = [["照片标签名称", "描述", "所属路线名字", "照片标签与路线距离", "照片桩号", "照片路径"]]
         for index in picPlaceMarkIndex_list:
             picName_description_lineId_list = []
             temp = placeMark[index].Point.coordinates.text.split(",")[:2]
@@ -225,15 +270,28 @@ if __name__ == '__main__':
             print(lineId_distance_chainAge_list[0])
             # for item in lineId_distance_chainAge_list:
             #     print(item)
+            ovatta_list = [item for item in placeMark[index].OvAttr.OvAttaList.OvAttaItem]
             picName_description_lineId_list = [placeMark[index].name, placeMark[index].description.text,
-                                               lineId_distance_chainAge_list[0]]
-            for item in placeMark[index].OvAttr.OvAttaList.OvAttaItem:
-                picName_description_lineId_list.append(item)
+                                               lineId_distance_chainAge_list[0], ovatta_list]
             res_picName_description_lineId_list.append(picName_description_lineId_list)
+        print("step3:判断照片桩号，分析description内容,Done!")
 
         # step4:生成表格--------------------
         with open(Setting.outputPath, 'w', encoding="utf-8") as outfile:
             outfile.write(str(res_picName_description_lineId_list).replace("], [", "\n").replace('[', "").replace("]", ""))
+        print("step4:生成表格,Done!")
 
         # step5:照片分组整理
-        pass
+        for pic_inf_list in res_picName_description_lineId_list:
+            target_path = getTargetPathFromList(pic_inf_list)
+            if not os.path.exists(target_path):
+                os.makedirs(target_path)
+            for source_path in pic_inf_list[-1]:
+                source_path = Path(Setting.kmlPath).parent.joinpath(source_path)
+                if os.path.exists(source_path):
+                    shutil.copy(source_path, target_path)
+        print("step5:照片分组整理,Done!")
+
+
+if __name__ == '__main__':
+    main()
