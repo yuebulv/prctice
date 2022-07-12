@@ -25,12 +25,12 @@ def triangleAre(a: float, b: float, c: float):
 
 
 if __name__ == "__main__":
-    a = []
-    b = {}
-    b[1]= 2
-    c = ['3', '4']
-    # a.append(b)
-    a.append(c)
-    d = " ".join(c)
+    a = "K{:04d}".format(int(6.11))
+    b = a[:-3] + "+" + a[-3:]
+    c = ""
+    if not c:
+        print(1)
+    else:
+        print(2)
     print(a)
-    print(d)
+    print(b)

@@ -18,15 +18,16 @@ from pathlib import Path
 import os
 import pandas as pd
 import shutil
+import json
 
 
 class Setting():
-    maxDistance_picToLine = 10  # 线路所属照片与线路最大距离
+    maxDistance_picToLine = 15  # 线路所属照片与线路最大距离
     initialDistance = 10000
-    regx_picDescription = "护栏"
-    outputPath = r"D:\X项目\20220528大竹安保工程\W-外业成果\5组.txt"
-    kmlPath = r"D:\X项目\20220528大竹安保工程\W-外业成果\5组.kml"
-    path_group_excel = r"D:\X项目\20220528大竹安保工程\W-外业成果\20220614安全防护调查表（路侧护栏）汇总表-y.xlsx"
+    regx_picDescription = ""
+    outputPath = r"F:\20220524大竹县农村公路安全生命防护工程\O-奥维\外业调查\20220712-5组汇总\5组.txt"
+    kmlPath = r"F:\20220524大竹县农村公路安全生命防护工程\O-奥维\外业调查\20220712-5组汇总\5组.kml"
+    path_group_excel = r"F:\20220524大竹县农村公路安全生命防护工程\O-奥维\外业调查\20220614安全防护调查表（路侧护栏）汇总表-y.xlsx"
     sheetname = "Sheet1"
 
 
@@ -118,8 +119,14 @@ def isPicBelongLine(point: list, line_start: list, line_end: list, toleranceRadi
         return False
     else:
         if distance <= toleranceRadius:
-            angle_a = math.acos((lenA**2+lenB**2-lenC**2)/(2*lenA*lenB))*180/math.pi
-            angle_c = math.acos((lenC**2+lenB**2-lenA**2)/(2*lenC*lenB))*180/math.pi
+            try:
+                angle_a = math.acos((lenA**2+lenB**2-lenC**2)/(2*lenA*lenB))*180/math.pi
+            except:
+                angle_a = 90
+            try:
+                angle_c = math.acos((lenC**2+lenB**2-lenA**2)/(2*lenC*lenB))*180/math.pi
+            except:
+                angle_c = 90
             # print(f"angle_c:{angle_c}", f"angle_a:{angle_a}")
             if angle_a <= 90 and angle_c <= 90:
                 return True
@@ -155,20 +162,59 @@ def move_file(target_path, source_path):
 
 def getTargetPathFromList(pic_inf_list):
     # 功能：从list中得到目标path ,list 格式如main中res_picName_description_lineId_list
-    len_of_line_number = len(pic_inf_list[2])
+    print(pic_inf_list[2])
+    try:
+        pic_inf_list[2][0] = str(pic_inf_list[2][0]).replace(" ", "")
+    except:
+        return ""
+    len_of_line_number = len(pic_inf_list[2][0])
     new_line_number = "C000511724"
+    print(f"pic_inf_list[2][0]:{pic_inf_list[2][0]}")
+    print(len_of_line_number)
     if len_of_line_number == 2:  # ********************************************************需要精减
-        new_line_number = "C0" + str(pic_inf_list[2]) + "511724"
+        new_line_number = "C0" + str(pic_inf_list[2][0]) + "511724"
     elif len_of_line_number == 3:
-        new_line_number = "C" + str(pic_inf_list[2]) + "511724"
+        new_line_number = "C" + str(pic_inf_list[2][0]) + "511724"
+    elif len_of_line_number == 4:
+        new_line_number = str(pic_inf_list[2][0]) + "511724"
     elif len_of_line_number == 6:
-        pass
+        new_line_number = str(pic_inf_list[2][0])
     else:
-        return None
+        return ""
     target_path_series = findDataFromExcel(Setting.path_group_excel, sheetname=Setting.sheetname, key=new_line_number)
     target_path = "\\".join(target_path_series.astype(str).tolist())
-    target_path = Path(Setting.kmlPath).parent.joinpath(target_path).joinpath(pic_inf_list[4])
+    print(pic_inf_list)
+    print(pic_inf_list[2][0])
+    print(new_line_number)
+    print(target_path_series)
+    print(target_path)
+    try:
+        chain_age = "K{:04d}".format(int(pic_inf_list[2][2]))
+    except:
+        return ""
+    else:
+        chain_age = chain_age[:-3] + "+" + chain_age[-3:]
+    target_path = os.path.join(os.path.dirname(Setting.kmlPath), target_path, chain_age)
+        # Path(Setting.kmlPath).parent.joinpath(target_path).joinpath(pic_inf_list[2][2])
     return target_path
+
+
+def picCopy(res_picName_description_lineId_list):
+    # step5:照片分组整理
+    for pic_inf_list in res_picName_description_lineId_list:
+        target_path = getTargetPathFromList(pic_inf_list)
+        print(f"target_path:{target_path}")
+        if not os.path.exists(target_path):
+            try:
+                os.makedirs(target_path)
+            except:
+                continue
+        for source_path in pic_inf_list[-1]:
+            source_path = str(Path(Setting.kmlPath).parent) + "\\" + source_path  # .joinpath(source_path)
+            print(f"source_path:{source_path}")
+            if os.path.exists(source_path):
+                shutil.copy(source_path, target_path)
+    print("step5:照片分组整理,Done!")
 
 
 def main():
@@ -182,7 +228,7 @@ def main():
     kmlPath = Setting.kmlPath
     with open(kmlPath, 'r', encoding="utf-8") as f:
         placeMark_all = parser.parse(f).getroot().Document.Placemark
-
+        # placeMark_all = parser.parse(f).getroot().Document.Folder.Placemark
         # step1:得到所有路线（name,坐标）--------------------
         lines_dic = {}
         for placeMark in placeMark_all:
@@ -201,6 +247,9 @@ def main():
         picPlaceMarkIndex_list = []
         regx = Setting.regx_picDescription
         for index, placeMark in enumerate(placeMark_all):
+            if not regx:  # 表示无论有无description，都进行下一步
+                picPlaceMarkIndex_list.append(index)
+                continue
             try:
                 descr = placeMark[index].description.text
             except AttributeError:
@@ -222,7 +271,11 @@ def main():
         res_picName_description_lineId_list = [["照片标签名称", "描述", "所属路线名字", "照片标签与路线距离", "照片桩号", "照片路径"]]
         for index in picPlaceMarkIndex_list:
             picName_description_lineId_list = []
-            temp = placeMark[index].Point.coordinates.text.split(",")[:2]
+            try:
+                temp = placeMark[index].Point.coordinates.text.split(",")[:2]
+            except AttributeError as placeMark_error:
+                print("error_placeMark[index].Point.coordinates.text.split(",")[:2]", f"placeMark[index]:{placeMark[index]}")
+                continue
             pointCoord_array = np.array([float(temp[0]), float(temp[1])])
             lineId_distance_chainAge_list = []
             for lineKey in lines_dic:
@@ -263,7 +316,7 @@ def main():
                     # print(f"lineLen:{lineLen}")
                 lineId_distance_chainAge_list.append([lineKey, distance_min, chainAge])
             print(placeMark[index].name)
-            print(placeMark[index].description.text)
+            # print(placeMark[index].description.text)
             # print(len(lineId_distance_chainAge_list))
             lineId_distance_chainAge_list = sorted(lineId_distance_chainAge_list, key=lambda x: x[1])
             # print(lineId_distance_chainAge_list)
@@ -271,27 +324,27 @@ def main():
             # for item in lineId_distance_chainAge_list:
             #     print(item)
             ovatta_list = [item for item in placeMark[index].OvAttr.OvAttaList.OvAttaItem]
-            picName_description_lineId_list = [placeMark[index].name, placeMark[index].description.text,
+            try:
+                description_text = placeMark[index].description.text
+            except AttributeError:
+                description_text = ""
+            picName_description_lineId_list = [placeMark[index].name, description_text,
                                                lineId_distance_chainAge_list[0], ovatta_list]
             res_picName_description_lineId_list.append(picName_description_lineId_list)
         print("step3:判断照片桩号，分析description内容,Done!")
 
         # step4:生成表格--------------------
         with open(Setting.outputPath, 'w', encoding="utf-8") as outfile:
+            # outfile.write(json.dumps(res_picName_description_lineId_list))
             outfile.write(str(res_picName_description_lineId_list).replace("], [", "\n").replace('[', "").replace("]", ""))
         print("step4:生成表格,Done!")
 
         # step5:照片分组整理
-        for pic_inf_list in res_picName_description_lineId_list:
-            target_path = getTargetPathFromList(pic_inf_list)
-            if not os.path.exists(target_path):
-                os.makedirs(target_path)
-            for source_path in pic_inf_list[-1]:
-                source_path = Path(Setting.kmlPath).parent.joinpath(source_path)
-                if os.path.exists(source_path):
-                    shutil.copy(source_path, target_path)
-        print("step5:照片分组整理,Done!")
+        picCopy(res_picName_description_lineId_list)
 
 
 if __name__ == '__main__':
     main()
+    # with open(Setting.outputPath, "r", encoding="utf-8") as inputfile:
+    #     picName_description_lineId_list = json.loads(inputfile.read())
+    # print(picName_description_lineId_list)

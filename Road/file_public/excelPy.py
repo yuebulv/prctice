@@ -12,7 +12,7 @@ def creatFileFolders(path_excel, sheetName):
     # 未处理合并单元格后nan值问题
     paths_series = data.iloc[:, 0].map(str) + "\\" + data.iloc[:, 1].map(str) + "\\" + data.iloc[:, 2].map(str) + "\\" + data.iloc[:, 3].map(str)
 
-    paths_series = paths_series.head()  # *****
+    paths_series = paths_series  # *****
     for newPath in paths_series:
         newPath = Path(path_excel).parent.joinpath(newPath)
         if not os.path.exists(newPath):
@@ -20,7 +20,7 @@ def creatFileFolders(path_excel, sheetName):
 
 
 if __name__ == "__main__":
-    path_excel = r"D:\X项目\20220528大竹安保工程\W-外业成果\20220614安全防护调查表（路侧护栏）汇总表-y.xlsx"
+    path_excel = r"F:\20220524大竹县农村公路安全生命防护工程\O-奥维\外业调查\20220614安全防护调查表（路侧护栏）汇总表-y.xlsx"
     sheetName = "Sheet1"
     creatFileFolders(path_excel, sheetName)
 
