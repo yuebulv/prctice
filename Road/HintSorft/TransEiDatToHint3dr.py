@@ -33,8 +33,8 @@ import tkinter as tk
 from tkinter import filedialog
 from tkinter import *
 import sys
-import HintSorft.road as road
-import HintSorft.roadglobal as roadglobal
+import road as road
+import roadglobal as roadglobal
 
 
 def get3DdataFromDatfile(path): # 1 从dat文件中获取逐桩横断面三维数据

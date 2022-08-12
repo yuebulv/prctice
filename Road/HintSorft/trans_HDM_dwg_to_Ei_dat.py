@@ -47,8 +47,8 @@
     1、多段线：路面结构、路床、占地线；
     2、直线：中心线、分离式路基线、设计线、挡墙、水沟；
 '''
-import HintSorft.road as road
-import HintSorft.roadglobal as roadglobal
+import road as road
+import roadglobal as roadglobal
 import re
 import operator
 import copy

@@ -9,3 +9,10 @@
 def wid():
     pass
 ```
+## function slope 
+### 使用流程
+  1. eicad数据中包含are（生横断面图后生成）/dat/hdx/dl(如有)/sqx/dmx/gzx/icd
+  2. 运行TransEiDatToHint3dr生成3dr/tf文件
+  3. 将icd/sqx/dmx/hdx/gzx转为纬地数据，并在纬地里格式化一下
+  4. 使用数量表工具生成低填等数量表
+  5. 使用slope生成防护排水数据。

@@ -63,18 +63,18 @@
     regx 全局变量
 '''
 
-import HintSorft.TransEiDatToHint3dr as TransEiDatToHint3dr
+import TransEiDatToHint3dr as TransEiDatToHint3dr
 from tkinter import *
 import tkinter as tk
 import os
-import HintSorft.road as road
+import road as road
 import pymysql
 import math
-import HintSorft.mysql as mysql
+import mysql as mysql
 import copy
 import glob
-import HintSorft.roadglobal as roadglobal
-import HintSorft.gui_confirm as gui_confirm
+import roadglobal as roadglobal
+import gui_confirm as gui_confirm
 from tkinter import filedialog
 logName = ''
 logPath = ''
