@@ -330,7 +330,7 @@ def del_drainage_outside_frame(lines):
                     if i > 1 and line[i][1] == line[i-1][1]:
                         if line[i-1][1]-line[i-2][1] > 0:
                             x_direction = line[i][2]
-                        else:
+                        elif line[i-1][1]-line[i-2][1] < 0:
                             x_direction = -line[i][2]
                     else:
                         pass
@@ -342,7 +342,7 @@ def del_drainage_outside_frame(lines):
                     if i > 1 and line[i][1] == line[i-1][1]:
                         if line[i-1][1]-line[i-2][1] > 0:
                             x_direction = line[i][2]
-                        else:
+                        elif line[i-1][1]-line[i-2][1] < 0:
                             x_direction = -line[i][2]
                     else:
                         pass

@@ -15,4 +15,4 @@ def wid():
   2. 运行TransEiDatToHint3dr生成3dr/tf文件
   3. 将icd/sqx/dmx/hdx/gzx转为纬地数据，并在纬地里格式化一下
   4. 使用数量表工具生成低填等数量表
-  5. 使用slope生成防护排水数据。
+  5. 不同路线数据要放到不同文件夹内，使用slope生成防护排水数据。

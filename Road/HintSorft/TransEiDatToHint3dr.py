@@ -14,6 +14,7 @@
 #注意事项
 #使用说明：直接调用getfilepath('dat')函数，例resu=getfilepath('Dat'),即历所选文件夹内所有dat（e.dat）类型文件，指定文件夹内需包含e.are,e.dmx文件(dat,are,dmx文件名必须相同否则找不到对应文件)，
 # 2.3-pro 已考虑TF中正负号的问题
+# 暂不支持dat are dmx 中桩号有断链情况
 '''
     1		        整幅路基
     1	中央分隔带	整幅路基
