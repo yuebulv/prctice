@@ -986,7 +986,7 @@ def main(hdm_data_path):
                 err_list_main.append(checked_line['err_list'])
                 err_list_main[-1].append([{'hdm': hdm, 'key_left_Or_right': key_left_Or_right}])
             temp_xyz = np.array(checked_line['line'])[:, 0:3].tolist()
-            res_file.write('3q '+str(temp_xyz))
+            res_file.write('3q '+str(temp_xyz).replace(" ", "").replace("],[", " ").replace("[", "").replace("]]", " "))
             res_file.write('\n')
             temp_xyz = np.array(checked_line['line'])[:, -1].tolist()
             res_file.write(str(temp_xyz))
