@@ -42,7 +42,7 @@ def get3DdataFromDatfile(path): # 1 从dat文件中获取逐桩横断面三维�
     DatFile=''
     with open(path, "r") as FData:
         DatFile = FData.read()
-    regx = r'^\d+\.\d+[\r\n]+(?:(?:(?:\d+\.\d+ ?\d*){3}|\d+)[\r\n]+)+'
+    regx = roadglobal.regx_eiDat_hdmData()  # r'^\d+\.\d+[\r\n]+(?:(?:(?:-?\d+\.\d+ ?\d*){3}|\d+)[\r\n]+)+'
     res = re.findall(regx, DatFile, re.MULTILINE)   #1 用正则将每个横断面dat数据放入list res中
     FData.close()
     return res
