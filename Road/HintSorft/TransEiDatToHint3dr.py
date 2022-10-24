@@ -379,6 +379,13 @@ def whetherContainTheKeyInDmxfile(key, path_Dmxfile):
         print(f'data_dmx:{data_dmx}')
         dmxfile.close()
         return data_dmx
+
+
+def main():
+    resu = getfilepath('Dat')
+    return "dat转为3dr完成！"
+
+
 if __name__ == "__main__":
     resu = getfilepath('Dat')
     rootb = tk.Tk()
@@ -392,5 +399,6 @@ if __name__ == "__main__":
     rootb.confirmbutton = Button(rootb, text='运行结束', width=10, command=rootb.quit)
     rootb.confirmbutton.grid(row=1, column=1)
     mainloop()
+
 
 
