@@ -12,7 +12,7 @@ from itertools import chain
 import numpy as np
 from geopy.distance import geodesic
 import math
-
+import roadglobal as roadglobal
 
 def triangleAre(a: float, b: float, c: float):
     # 根据三边长度求面积
@@ -25,12 +25,5 @@ def triangleAre(a: float, b: float, c: float):
 
 
 if __name__ == "__main__":
-    a = []
-    b = {}
-    b[1]= 2
-    c = ['3', '4']
-    # a.append(b)
-    a.append(c)
-    d = " ".join(c)
-    print(a)
-    print(d)
+    res = roadglobal.regx_eiDat_hdmData()
+    print(res)

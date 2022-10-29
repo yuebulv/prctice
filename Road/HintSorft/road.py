@@ -4,10 +4,10 @@ import tkinter as tk
 import tkinter.messagebox
 import os
 import pymysql
-import HintSorft.road as road
-import HintSorft.mysql as mysql
+import road as road
+import mysql as mysql
 import copy
-import HintSorft.roadglobal as roadglobal
+import roadglobal as roadglobal
 from operator import itemgetter
 import sys
 

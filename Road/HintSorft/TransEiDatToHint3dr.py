@@ -14,6 +14,7 @@
 #注意事项
 #使用说明：直接调用getfilepath('dat')函数，例resu=getfilepath('Dat'),即历所选文件夹内所有dat（e.dat）类型文件，指定文件夹内需包含e.are,e.dmx文件(dat,are,dmx文件名必须相同否则找不到对应文件)，
 # 2.3-pro 已考虑TF中正负号的问题
+# 暂不支持dat are dmx 中桩号有断链情况
 '''
     1		        整幅路基
     1	中央分隔带	整幅路基
@@ -33,15 +34,15 @@ import tkinter as tk
 from tkinter import filedialog
 from tkinter import *
 import sys
-import HintSorft.road as road
-import HintSorft.roadglobal as roadglobal
+import road as road
+import roadglobal as roadglobal
 
 
 def get3DdataFromDatfile(path): # 1 从dat文件中获取逐桩横断面三维数据
     DatFile=''
     with open(path, "r") as FData:
         DatFile = FData.read()
-    regx = r'^\d+\.\d+[\r\n]+(?:(?:(?:\d+\.\d+ ?\d*){3}|\d+)[\r\n]+)+'
+    regx = roadglobal.regx_eiDat_hdmData()  # r'^\d+\.\d+[\r\n]+(?:(?:(?:-?\d+\.\d+ ?\d*){3}|\d+)[\r\n]+)+'
     res = re.findall(regx, DatFile, re.MULTILINE)   #1 用正则将每个横断面dat数据放入list res中
     FData.close()
     return res
@@ -378,6 +379,13 @@ def whetherContainTheKeyInDmxfile(key, path_Dmxfile):
         print(f'data_dmx:{data_dmx}')
         dmxfile.close()
         return data_dmx
+
+
+def main():
+    resu = getfilepath('Dat')
+    return "dat转为3dr完成！"
+
+
 if __name__ == "__main__":
     resu = getfilepath('Dat')
     rootb = tk.Tk()
@@ -391,5 +399,6 @@ if __name__ == "__main__":
     rootb.confirmbutton = Button(rootb, text='运行结束', width=10, command=rootb.quit)
     rootb.confirmbutton.grid(row=1, column=1)
     mainloop()
+
 
 

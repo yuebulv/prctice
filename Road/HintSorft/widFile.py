@@ -1,4 +1,4 @@
-from HintSorft.roadglobal import regx_wide
+from roadglobal import regx_wide
 import re
 import copy
 from operator import itemgetter

@@ -47,8 +47,8 @@
     1、多段线：路面结构、路床、占地线；
     2、直线：中心线、分离式路基线、设计线、挡墙、水沟；
 '''
-import HintSorft.road as road
-import HintSorft.roadglobal as roadglobal
+import road as road
+import roadglobal as roadglobal
 import re
 import operator
 import copy
@@ -330,7 +330,7 @@ def del_drainage_outside_frame(lines):
                     if i > 1 and line[i][1] == line[i-1][1]:
                         if line[i-1][1]-line[i-2][1] > 0:
                             x_direction = line[i][2]
-                        else:
+                        elif line[i-1][1]-line[i-2][1] < 0:
                             x_direction = -line[i][2]
                     else:
                         pass
@@ -342,7 +342,7 @@ def del_drainage_outside_frame(lines):
                     if i > 1 and line[i][1] == line[i-1][1]:
                         if line[i-1][1]-line[i-2][1] > 0:
                             x_direction = line[i][2]
-                        else:
+                        elif line[i-1][1]-line[i-2][1] < 0:
                             x_direction = -line[i][2]
                     else:
                         pass
@@ -986,7 +986,7 @@ def main(hdm_data_path):
                 err_list_main.append(checked_line['err_list'])
                 err_list_main[-1].append([{'hdm': hdm, 'key_left_Or_right': key_left_Or_right}])
             temp_xyz = np.array(checked_line['line'])[:, 0:3].tolist()
-            res_file.write('3q '+str(temp_xyz))
+            res_file.write('3q '+str(temp_xyz).replace(" ", "").replace("],[", " ").replace("[", "").replace("]]", " "))
             res_file.write('\n')
             temp_xyz = np.array(checked_line['line'])[:, -1].tolist()
             res_file.write(str(temp_xyz))

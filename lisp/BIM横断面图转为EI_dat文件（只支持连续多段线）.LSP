@@ -3,7 +3,7 @@
   (setq ss (ssget))
   (setq	entlst
 	 (mapcar
-	   'cadr
+	   'cadrl
 	   (vl-remove-if-not
 	     '(lambda (x) (= 'ENAME (type (cadr x))))
 	     (ssnamex ss)

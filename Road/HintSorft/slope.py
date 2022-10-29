@@ -63,18 +63,18 @@
     regx 全局变量
 '''
 
-import HintSorft.TransEiDatToHint3dr as TransEiDatToHint3dr
+import TransEiDatToHint3dr as TransEiDatToHint3dr
 from tkinter import *
 import tkinter as tk
 import os
-import HintSorft.road as road
+import road as road
 import pymysql
 import math
-import HintSorft.mysql as mysql
+import mysql as mysql
 import copy
 import glob
-import HintSorft.roadglobal as roadglobal
-import HintSorft.gui_confirm as gui_confirm
+import roadglobal as roadglobal
+import gui_confirm as gui_confirm
 from tkinter import filedialog
 logName = ''
 logPath = ''
@@ -84,7 +84,10 @@ def main():
     root = tk.Tk()
     root.withdraw()
     folderpath = filedialog.askdirectory(title='请选择prj文件所在文件夹')
-    os.chdir(folderpath)  # 切换工作路径
+    try:
+        os.chdir(folderpath)  # 切换工作路径
+    except OSError:
+        return "未选择正确路径"
     for prjfile in glob.glob('*.prj'):
         prjpath = folderpath+'\\'+prjfile
         if os.path.exists(prjpath) == False:
@@ -203,4 +206,8 @@ def main():
         # 5.4沉砂池（['起点', '止点', '长度', '左右侧', '边坡类型', '坡高max', '坡高min', '边坡坡度', '平台宽度']）
 
         # 5.5中央分隔带排水（['起点', '止点', '长度', '左右侧', '边坡类型', '坡高max', '坡高min', '边坡坡度', '平台宽度']）
+    return "输出防护、排水等数量表必要参数"
 
+
+if __name__ == "__main__":
+    main()
