@@ -16,7 +16,7 @@ from geopy.distance import geodesic
 import math
 from pathlib import Path
 import os
-import pandas as pd
+import pandas_prc as pd
 import shutil
 
 

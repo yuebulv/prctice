@@ -1,4 +1,4 @@
-import pandas as pd
+import pandas_prc as pd
 import numpy as np
 from pathlib import Path
 import os
@@ -12,7 +12,7 @@ def creatFileFolders(path_excel, sheetName):
     # 未处理合并单元格后nan值问题
     paths_series = data.iloc[:, 0].map(str) + "\\" + data.iloc[:, 1].map(str) + "\\" + data.iloc[:, 2].map(str) + "\\" + data.iloc[:, 3].map(str)
 
-    paths_series = paths_series.head()  # *****
+    # paths_series = paths_series.head()  # *****
     for newPath in paths_series:
         newPath = Path(path_excel).parent.joinpath(newPath)
         if not os.path.exists(newPath):
