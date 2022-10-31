@@ -18,8 +18,21 @@
         sheet_
     class road()
     起点、止点、左幅、右幅、整幅、长度
-
+  - tf.wf.tff.ptt
+  - tf.wf.total
 ## 1.2 mysql_to_excel
 # 2.to_mysql
 
 """
+
+
+class tf():
+    def __init__(self):
+        self.wf = "wf"
+        self.wf = "t"
+    def wf(self):
+        pass
+        def tff(self):
+            pass
+            def ptt(self):
+                pass
