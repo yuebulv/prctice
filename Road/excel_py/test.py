@@ -10,10 +10,10 @@ def test(path):
 
 
 if __name__ == "__main__":
-    # excel_path = r"E:\code\notes\noteOnGithub\data\SZYS06010111 每公里土石方数量表汇总表.xls"
-    # toexcel_path = r"E:\code\notes\noteOnGithub\data\toexcel.xlsx"
-    excel_path = r"D:\lvcode\noteOnGithub\noteOnGithub\data\SZYS06010111 每公里土石方数量表汇总表.xls"
-    toexcel_path = r"D:\lvcode\noteOnGithub\noteOnGithub\data\toexcel.xlsx"
+    excel_path = r"E:\code\notes\noteOnGithub\data\SZYS06010111 每公里土石方数量表汇总表.xls"
+    toexcel_path = r"E:\code\notes\noteOnGithub\data\toexcel.xlsx"
+    # excel_path = r"D:\lvcode\noteOnGithub\noteOnGithub\data\SZYS06010111 每公里土石方数量表汇总表.xls"
+    # toexcel_path = r"D:\lvcode\noteOnGithub\noteOnGithub\data\toexcel.xlsx"
     sheetName = "黄阁西互通"
     skiprows_sheet = 2
     data_range_in_excel = [[0, 50], [0, 45]]
@@ -56,10 +56,20 @@ if __name__ == "__main__":
     dataDf.replace(np.nan, "", inplace=True)  # np.nan == np.nan 返回False
     dataDf = dataDf.T.drop_duplicates(keep="first").T
 
-    print(dataDf[("挖方", "土方", "普通土")])
-    print(dataDf["起讫桩号"])
+    # print(dataDf[("挖方", "土方", "普通土")])
+    # print(dataDf["起讫桩号"])
+
+    # 多层索引列，合并为单层索引
+    mulindex = dataDf.columns.to_frame(index=False)
+    mulindex_joined = ["-".join(i) for i in mulindex.values]
+    dataDf.columns = mulindex_joined
+
+    # res = dataDf.values.str.contains("合计")
+    # print(res)
+
     # print(dataDf.iloc[:, 0], dataDf.iloc[:, 16])
     # dataDf["result"] = np.where(dataDf.iloc[:, 0] == dataDf.iloc[:, 16], "same", "dif")  # np.nan == np.nan 返回False
     # print(dataDf["result"])
     # print(dataDf.iloc[:, 6].map(lambda x:x==""))
+
     # dataDf.to_excel(toexcel_path)
