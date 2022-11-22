@@ -23,6 +23,7 @@
 ## 1.2 mysql_to_excel
 # 2.to_mysql
 
+# 表格符合性检查
 
 思路：多层索引合并
 """
@@ -38,3 +39,26 @@ class tf():
             pass
             def ptt(self):
                 pass
+
+
+class TfSheet():
+    def __init__(self):
+        columns = {
+            "起讫桩号": "起讫桩号",
+            "长度": "长度",
+            "左右幅": "左右幅",
+            "挖方": "挖方",
+            "挖普通土": "挖普通土",
+        }
+        columns_other_name = {
+            "wf": "挖方",
+            "wtf": "挖土方",
+        }
+
+
+class TfSheetCheck():
+    pass
+
+
+class TfSheetCheckRule():
+    pass
