@@ -196,7 +196,7 @@ def tf_km_sheet_data(eval_sentence):
     return eval(eval_sentence)
 
 
-def get_sheet_data(file_name, sheet_name, eval_sentence, skiprows=None, header="0", sheet_type="road"):
+def get_sheet_data(eval_sentence, file_name, sheet_name, skiprows=None, header="0", sheet_type="road"):
     '''
     :param file_name:要查询文件的路径+文件名
     :param sheet_name:要查询表格name
@@ -216,27 +216,77 @@ def get_sheet_data(file_name, sheet_name, eval_sentence, skiprows=None, header="
     return eval("df" + "." + eval_sentence)
 
 
-def main():
-    # res = get_tf_data()
-    pass
+def alias_of_file(file_name_str) -> str:
+    # 给文件取别名
+    sys.path.append(r'./road')
+    from Road.file_public.str_func import getNumofCommonSubstr
+    alias_str = '路面，防护，排水，每公里'
+    alias = getNumofCommonSubstr(file_name_str, alias_str)
+    return alias[0]
+
+
+# def get_contents_excel(file_filter: list, path_str) -> DataFrame:
+#     sys.path.append(r'./road')
+#     from Road.file_public.file_public import file_filter_list
+#     file_path_list = file_filter_list(['xlsx', 'xls'], path_str=path_str)
+#     files_sheet_names_list = []
+#     max_sheet_count = 0
+#     for file_path in file_path_list:
+#         xl = pd.ExcelFile(file_path[-1])
+#         file_sheet_names = xl.sheet_names
+#         files_sheet_names_list.append(file_sheet_names)
+#         max_sheet_count = max(max_sheet_count, len(file_sheet_names))
+#     column_labels = ['sheet_name' + str(i) for i in range(0, max_sheet_count)]
+#     files_sheet_names_df = pd.DataFrame(files_sheet_names_list, columns=column_labels)
+#     data_df = pd.DataFrame(file_path_list, columns=['file_name', 'file_path'])
+#     data_df = pd.concat([data_df, files_sheet_names_df], axis=1)
+#     return data_df
+
+
+def output_road_contents_excel(project_path):
+    # 功能：得到project_path路径下所有的excel[文件名, 别名，文件路径，工作表1，工作表n]，保存位置project_path + r"\road_content.xlsx"
+    sys.path.append(r'./road')
+    from Road.file_public.file_public import get_contents_excel
+    path_str = project_path
+    contents_df = get_contents_excel(path_str=path_str)
+    try:
+        contents_df['file_alias'] = contents_df['file_name'].map(alias_of_file)  # 给文件增加别名
+    except KeyError:
+        pass
+    contents_df_columns_list = list(contents_df.columns)
+    contents_df_columns_list.remove('file_name')
+    contents_df_columns_list.remove('file_alias')
+    new_columns = ['file_name', 'file_alias']
+    new_columns.extend(contents_df_columns_list)
+    contents_df = contents_df[new_columns]
+    path_str = project_path + r"\road_content.xlsx"
+    contents_df.to_excel(path_str)
+
+
+def demo():
+    # 1. output_road_contents_excel(project_path),输出项目下所有excel表名，路径等。非必须步骤
+    # 2. get_sheet_data(eval_sentence, file_name, sheet_name, skiprows, header) 查询数据
+    # 3. 其中file_name，可以在excel文件调用步骤1 中结果，简化。
+    project_path = r'D:\lvcode\noteOnGithub\noteOnGithub\data'
+    output_road_contents_excel(project_path)
+
+    # excel_path = r"E:\code\notes\noteOnGithub\data\SZYS06010111 每公里土石方数量表汇总表.xls"
+    file_name = r"D:\lvcode\noteOnGithub\noteOnGithub\data\SZYS06010111 每公里土石方数量表汇总表.xls"
+    sheet_name = "黄阁西互通"
+    # eval_sentence = """loc[df["起讫桩号"]=="合计", '挖方总数量']"""
+    # eval_sentence = """iloc[:, 0:2]"""
+    # eval_sentence = """loc[df["起讫桩号"].str.contains("匝道"), '挖方总数量']"""
+    eval_sentence = """loc[df["起点"]>2000, ['挖方总数量', '路线前缀']]"""
+    skiprows = """2"""
+    header = """[0, 1 ,2]"""
+    data = get_sheet_data(eval_sentence, file_name, sheet_name, skiprows, header)
+    print("data:", data)
 
 
 if __name__ == "__main__":
     # tf = TfSheet("path", "columns", "chain")
     # tf.get_tf_data()
-
-    # excel_path = r"E:\code\notes\noteOnGithub\data\SZYS06010111 每公里土石方数量表汇总表.xls"
-    # excel_path = r"D:\lvcode\noteOnGithub\noteOnGithub\data\SZYS06010111 每公里土石方数量表汇总表.xls"
-    file_name = r"D:\lvcode\noteOnGithub\noteOnGithub\data\SZYS06010111 每公里土石方数量表汇总表.xls"
-    sheet_name = "黄阁西互通"
-    # eval_sentence = """loc[df["起讫桩号"]=="合计", '挖方总数量']"""
-    skiprows = """2"""
-    header = """[0, 1 ,2]"""
-    # eval_sentence = """iloc[:, 0:2]"""
-    eval_sentence = """loc[df["起点"]>2000, ['挖方总数量', '路线前缀']]"""
-    # eval_sentence = """loc[df["起讫桩号"].str.contains("匝道"), '挖方总数量']"""
-    data = get_sheet_data(file_name, sheet_name, eval_sentence, skiprows, header)
-    print("data:", data)
+    demo()
 
 
 
