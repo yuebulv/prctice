@@ -10,3 +10,7 @@
 
 # pycharm
 .idea
+
+# test data
+.xlsx
+.xls
