@@ -29,10 +29,6 @@
 """
 import pandas as pd
 from pandas import DataFrame, Series
-import matplotlib.pyplot as plt
-import os
-import numpy as np
-import re
 import sys
 
 
@@ -107,14 +103,12 @@ def inquiry_excel_data(eval_sentence, file_name, sheet_name, skiprows=None, head
     from Road.excel_py.sheet_data_clean import clean_sheet_data as sheet_data_clean
     skiprows = eval(skiprows)
     header = eval(header)
-    # dataDf = pd.read_excel(file_name, sheet_name=sheet_name, skiprows=skiprows, na_filter=0, header=header, usecols=usecols)
     try:
         dataDf = pd.read_excel(file_name, sheet_name=sheet_name, skiprows=skiprows, na_filter=0, header=header, usecols=usecols)
     except ValueError:
         dataDf = pd.read_excel(file_name, sheet_name=sheet_name, skiprows=skiprows, na_filter=0, header=None, usecols=usecols)
         dataDf_columns = dataDf.iloc[header, :]
         dataDf.drop(header, inplace=True)
-        # dataDf_columns = pd.read_excel(file_name, sheet_name=sheet_name, skiprows=skiprows, na_filter=0, nrows=header, usecols=usecols)
         dataDf.columns = pd.MultiIndex.from_arrays(dataDf_columns.values)
     # df: DataFrame = sheet_data_clean(file_name, sheet_name, skiprows, header)
     df: DataFrame = sheet_data_clean(dataDf)
