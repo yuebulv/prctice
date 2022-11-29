@@ -4,7 +4,6 @@ import os
 from itertools import chain
 import pandas as pd
 from pandas import DataFrame, Series
-import sys
 
 
 def getData_list(path, regx, *sortcol, reverse=True, repetition=True, en="UTF-8"):
@@ -51,7 +50,7 @@ def file_filter_list(file_filter: list, path_str) -> list:
     for root, dirs, files in os.walk(path_str, topdown=False):
         for name in files:
             tem = os.path.join(root, name)
-            if tem.split('.')[-1] in file_filter:
+            if tem.split('.')[-1] in file_filter and not name.startswith('~$'):
                 file_list.append([name, tem])
     return file_list
 
@@ -76,7 +75,7 @@ def get_contents_excel(path_str) -> DataFrame:
     return data_df
 
 
-if __name__ == "__main__":
+def demo():
     path_str = r'D:\lvcode\noteOnGithub\noteOnGithub\data'
     res = file_filter_list(['xlsx', 'xls'], path_str=path_str)
     print(res)

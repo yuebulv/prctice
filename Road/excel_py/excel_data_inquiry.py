@@ -1,3 +1,4 @@
+# coding:utf-8
 """
 目标：实现excel <--> mysql 双向便捷交互
 
@@ -30,6 +31,8 @@
 import pandas as pd
 from pandas import DataFrame, Series
 import sys
+import xlwings as xw
+import os
 
 
 class tf():
@@ -88,7 +91,9 @@ def tf_km_sheet_data(eval_sentence):
     return eval(eval_sentence)
 
 
-def inquiry_excel_data(eval_sentence, file_name, sheet_name, skiprows=None, header="0", sheet_type="road", usecols=None):
+@xw.func
+@xw.ret(index=False, expand='table')
+def inquiry_excel_data(eval_sentence, file_name, sheet_name, skiprows=None, header="0", usecols=None, sheet_type="road", nrows=None):
     '''
     :param file_name:要查询文件的路径+文件名
     :param sheet_name:要查询表格name
@@ -99,38 +104,41 @@ def inquiry_excel_data(eval_sentence, file_name, sheet_name, skiprows=None, head
     :param usecols:
     :return:
     '''
-    sys.path.append(r'./road')
-    from Road.excel_py.sheet_data_clean import clean_sheet_data as sheet_data_clean
-    skiprows = eval(skiprows)
+    from sheet_data_clean import clean_sheet_data as sheet_data_clean
+    from Road.excel_py.pd_read_excel_strengthen import read_excel_strengthen
+    skiprows = eval(str(skiprows))
     header = eval(header)
-    try:
-        dataDf = pd.read_excel(file_name, sheet_name=sheet_name, skiprows=skiprows, na_filter=0, header=header, usecols=usecols)
-    except ValueError:
-        dataDf = pd.read_excel(file_name, sheet_name=sheet_name, skiprows=skiprows, na_filter=0, header=None, usecols=usecols)
-        dataDf_columns = dataDf.iloc[header, :]
-        dataDf.drop(header, inplace=True)
-        dataDf.columns = pd.MultiIndex.from_arrays(dataDf_columns.values)
+    # try:
+    #     dataDf = pd.read_excel(file_name, sheet_name=sheet_name, skiprows=skiprows, na_filter=0, header=header, usecols=usecols)
+    # except ValueError:
+    #     dataDf = pd.read_excel(file_name, sheet_name=sheet_name, skiprows=skiprows, na_filter=0, header=None, usecols=usecols)
+    #     dataDf_columns = dataDf.iloc[header, :]
+    #     dataDf.drop(header, inplace=True)
+    #     dataDf.columns = pd.MultiIndex.from_arrays(dataDf_columns.values)
+    dataDf = read_excel_strengthen(file_name, sheet_name=sheet_name, skiprows=skiprows, na_filter=0, header=header, usecols=usecols, nrows=nrows)
     # df: DataFrame = sheet_data_clean(file_name, sheet_name, skiprows, header)
     df: DataFrame = sheet_data_clean(dataDf)
     if sheet_type.lower() == 'road':
-        sys.path.append(r"./road")
-        from Road.chain_age import start_end_chainage_split_df
+        moudle_path = os.path.abspath(r'..')  # 引入包
+        sys.path.insert(0, moudle_path)
+        from chain_age import start_end_chainage_split_df
         df = start_end_chainage_split_df(df)
-    return eval("df" + "." + eval_sentence)
+    res = eval("df" + "." + eval_sentence)
+    return res.values
 
 
 def alias_of_file(file_name_str) -> str:
     # 给文件取别名
-    sys.path.append(r'./road')
+    # sys.path.append(r'./road')
     from Road.file_public.str_func import getNumofCommonSubstr
-    alias_str = '路面，防护，排水，每公里'
+    alias_str = '排水工程，防护，路面，每公里,涵洞，特殊，新旧，夯实，用地，护栏，标志，青苗，砍树，技术指标'
     alias = getNumofCommonSubstr(file_name_str, alias_str)
     return alias[0]
 
 
+@xw.func
 def output_road_contents_excel(project_path):
     # 功能：得到project_path路径下所有的excel[文件名, 别名，文件路径，工作表1，工作表n]，保存位置project_path + r"\road_content.xlsx"
-    sys.path.append(r'./road')
     from Road.file_public.file_public import get_contents_excel
     path_str = project_path
     contents_df = get_contents_excel(path_str=path_str)
@@ -152,19 +160,30 @@ def demo():
     # 1. output_road_contents_excel(project_path),输出项目下所有excel表名，路径等。非必须步骤
     # 2. get_sheet_data(eval_sentence, file_name, sheet_name, skiprows, header) 查询数据
     # 3. 其中file_name，可以在excel文件调用步骤1 中结果，简化。
-    project_path = r'D:\lvcode\noteOnGithub\noteOnGithub\data'
-    output_road_contents_excel(project_path)
+    # project_path = r'F:\20211124长寿农村道路\1-CAD\20221128电厂路-起点段不加宽'
+    # output_road_contents_excel(project_path)
 
-    # excel_path = r"E:\code\notes\noteOnGithub\data\SZYS06010111 每公里土石方数量表汇总表.xls"
-    file_name = r"D:\lvcode\noteOnGithub\noteOnGithub\data\SZYS06010111 每公里土石方数量表汇总表.xls"
+    file_name = r"E:\code\notes\noteOnGithub\data\SZYS06010111 每公里土石方数量表汇总表.xls"
+    # file_name = r"D:\lvcode\noteOnGithub\noteOnGithub\data\SZYS06010111 每公里土石方数量表汇总表.xls"
     sheet_name = "黄阁西互通"
     # eval_sentence = """loc[df["起讫桩号"]=="合计", '挖方总数量']"""
     # eval_sentence = """iloc[:, 0:2]"""
     # eval_sentence = """loc[df["起讫桩号"].str.contains("匝道"), '挖方总数量']"""
     eval_sentence = """loc[df["起点"]>2000, ['挖方总数量', '路线前缀']]"""
-    skiprows = """2"""
+    skiprows = 2
     header = """[0, 1 ,2]"""
-    data = inquiry_excel_data(eval_sentence, file_name, sheet_name, skiprows, header, usecols='A:AU')
+    usecols = 'A:AU'
+    nrows = 67
+
+    # file_name = r'F:\20211124长寿农村道路\1-CAD\20221128电厂路-起点段不加宽\S-17路基土石方汇总数量表.xls'
+    # sheet_name = '土石方汇总'
+    # eval_sentence = '''loc[df["桩号"].str.contains("计", na=False),:]'''
+    # skiprows = 2
+    # header = """[0, 1 ,2, 3]"""
+    # usecols = 'A:X'
+    # nrows = 20
+    data = inquiry_excel_data(eval_sentence, file_name, sheet_name, skiprows, header, usecols=usecols, nrows=nrows)
+    print(type(data))
     print("data:", data)
 
 
@@ -172,6 +191,7 @@ if __name__ == "__main__":
     # tf = TfSheet("path", "columns", "chain")
     # tf.get_tf_data()
     demo()
+
 
 
 
