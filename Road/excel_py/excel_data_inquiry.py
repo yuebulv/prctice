@@ -33,6 +33,7 @@ from pandas import DataFrame, Series
 import sys
 import xlwings as xw
 import os
+from Road.excel_py.road_excel import *
 
 
 class tf():
@@ -104,7 +105,7 @@ def inquiry_excel_data(eval_sentence, file_name, sheet_name, skiprows=None, head
     :param usecols:
     :return:
     '''
-    from sheet_data_clean import clean_sheet_data as sheet_data_clean
+    from Road.excel_py.sheet_data_clean import clean_sheet_data as sheet_data_clean
     from Road.excel_py.pd_read_excel_strengthen import read_excel_strengthen
     skiprows = eval(str(skiprows))
     header = eval(header)
@@ -119,9 +120,17 @@ def inquiry_excel_data(eval_sentence, file_name, sheet_name, skiprows=None, head
     # df: DataFrame = sheet_data_clean(file_name, sheet_name, skiprows, header)
     df: DataFrame = sheet_data_clean(dataDf)
     if sheet_type.lower() == 'road':
-        moudle_path = os.path.abspath(r'..')  # 引入包
-        sys.path.insert(0, moudle_path)
-        from chain_age import start_end_chainage_split_df
+        # 格式化df中的列标签
+        from Road.file_public.str_func import str_map_factory
+        # from Road.excel_py.road_excel import *
+        excel_name = os.path.basename(file_name)
+        road_excel = RoadExcel(excel_name)
+        road_format_columns = road_excel.get_format_columns()
+        df.columns = pd.Series(list(df.columns)).apply(str_map_factory, map_dic=road_format_columns)
+
+        # moudle_path = os.path.abspath(r'..')  # 引入包
+        # sys.path.insert(0, moudle_path)
+        from Road.chain_age import start_end_chainage_split_df
         df = start_end_chainage_split_df(df)
     res = eval("df" + "." + eval_sentence)
     return res.values
@@ -163,13 +172,13 @@ def demo():
     # project_path = r'F:\20211124长寿农村道路\1-CAD\20221128电厂路-起点段不加宽'
     # output_road_contents_excel(project_path)
 
-    file_name = r"E:\code\notes\noteOnGithub\data\SZYS06010111 每公里土石方数量表汇总表.xls"
-    # file_name = r"D:\lvcode\noteOnGithub\noteOnGithub\data\SZYS06010111 每公里土石方数量表汇总表.xls"
+    # file_name = r"E:\code\notes\noteOnGithub\data\SZYS06010111 每公里土石方数量表汇总表.xls"
+    file_name = r"D:\lvcode\noteOnGithub\noteOnGithub\data\SZYS06010111 每公里土石方数量表汇总表.xls"
     sheet_name = "黄阁西互通"
-    # eval_sentence = """loc[df["起讫桩号"]=="合计", '挖方总数量']"""
+    eval_sentence = """loc[df["起讫桩号"]=="合计", '清表回填']"""
     # eval_sentence = """iloc[:, 0:2]"""
     # eval_sentence = """loc[df["起讫桩号"].str.contains("匝道"), '挖方总数量']"""
-    eval_sentence = """loc[df["起点"]>2000, ['挖方总数量', '路线前缀']]"""
+    # eval_sentence = """loc[df["起点"]>2000, ['挖方总数量', '路线前缀']]"""
     skiprows = 2
     header = """[0, 1 ,2]"""
     usecols = 'A:AU'
