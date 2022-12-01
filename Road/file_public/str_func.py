@@ -60,6 +60,14 @@ def str_map_factory(map_str, map_dic: dict) -> str:
     return map_str
 
 
+def alias_of_file(file_name_str) -> str:
+    # 给文件取别名
+    # 效率比较低
+    alias_str = '排水工程，防护，路面，每公里,涵洞，特殊，新旧，夯实，用地，护栏，标志，青苗，砍树，技术指标'
+    alias = getNumofCommonSubstr(file_name_str, alias_str)
+    return alias[0]
+
+
 if __name__ == "__main__":
     str1 = "SZYS06010111 每公里土石方数量表汇总表"
     str2 = '路面，防护，排水，每公里'

@@ -41,6 +41,3 @@ class PsExcelFormatColumns(RoadExcelFormatColumns):
             '边沟盖板钢筋': [('边沟', '盖板钢筋')],
             }
         self.columns.update(self.columns_add)
-
-
-
