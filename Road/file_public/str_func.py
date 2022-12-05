@@ -68,8 +68,22 @@ def alias_of_file(file_name_str) -> str:
     return alias[0]
 
 
+def value_to_numeric(value, num_type='float'):
+    exp = f'{num_type}({value})'
+    try:
+        # value = float(value)
+        value = round(eval(exp), 3)
+    except:
+        pass
+    return value
+
+
 if __name__ == "__main__":
-    str1 = "SZYS06010111 每公里土石方数量表汇总表"
-    str2 = '路面，防护，排水，每公里'
-    tem = getNumofCommonSubstr(str1, str2)
+    # str1 = "SZYS06010111 每公里土石方数量表汇总表"
+    # str2 = '路面，防护，排水，每公里'
+    # tem = getNumofCommonSubstr(str1, str2)
+    # print(tem)
+
+    tem = '1.2a'
+    tem = value_to_numeric(tem)
     print(tem)

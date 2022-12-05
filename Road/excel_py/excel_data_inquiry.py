@@ -104,21 +104,21 @@ def demo():
     # 1. output_road_contents_excel(project_path),输出项目下所有excel表名，路径等。非必须步骤
     # 2. get_sheet_data(eval_sentence, file_name, sheet_name, skiprows, header) 查询数据
     # 3. 其中file_name，可以在excel文件调用步骤1 中结果，简化。
-    # project_path = r'F:\20211124长寿农村道路\1-CAD\20221128电厂路-起点段不加宽'
-    # project_path = r'D:\lvcode\noteOnGithub\noteOnGithub\data'
-    # output_road_contents_excel(project_path)
+    project_path = r'F:\20211124长寿农村道路\1-CAD\20221128电厂路-起点段不加宽'
+    project_path = r'D:\lvcode\noteOnGithub\noteOnGithub\data'
+    output_road_contents_excel(project_path)
 
-    # file_name = r"E:\code\notes\noteOnGithub\data\SZYS06010111 每公里土石方数量表汇总表.xls"
-    file_name = r"D:\lvcode\noteOnGithub\noteOnGithub\data\SZYS06010111 每公里土石方数量表汇总表.xls"
-    sheet_name = "黄阁西互通"
-    eval_sentence = """loc[df["起讫桩号"]=="合计", '清表回填']"""
-    # eval_sentence = """iloc[:, 0:2]"""
-    # eval_sentence = """loc[df["起讫桩号"].str.contains("匝道"), '挖方总数量']"""
-    # eval_sentence = """loc[df["起点"]>2000, ['起讫桩号', '挖方总数量', '路线前缀']]"""
-    skiprows = 2
-    header = """[0, 1 ,2]"""
-    usecols = 'A:AU'
-    nrows = 67
+    # # file_name = r"E:\code\notes\noteOnGithub\data\SZYS06010111 每公里土石方数量表汇总表.xls"
+    # file_name = r"D:\lvcode\noteOnGithub\noteOnGithub\data\SZYS06010111 每公里土石方数量表汇总表.xls"
+    # sheet_name = "黄阁西互通"
+    # eval_sentence = """loc[df["起讫桩号"]=="合计", '清表回填']"""
+    # # eval_sentence = """iloc[:, 0:2]"""
+    # # eval_sentence = """loc[df["起讫桩号"].str.contains("匝道"), '挖方总数量']"""
+    # # eval_sentence = """loc[df["起点"]>2000, ['起讫桩号', '挖方总数量', '路线前缀']]"""
+    # skiprows = 2
+    # header = """[0, 1 ,2]"""
+    # usecols = 'A:AU'
+    # nrows = 67
 
     # # file_name = r'F:\20211124长寿农村道路\1-CAD\20221128电厂路-起点段不加宽\S-17路基土石方汇总数量表.xls'
     # # sheet_name = '土石方汇总'
@@ -127,9 +127,10 @@ def demo():
     # # header = """[0, 1 ,2, 3]"""
     # # usecols = 'A:X'
     # # nrows = 20
-    data = inquiry_excel_data(eval_sentence, file_name, sheet_name, skiprows, header, usecols=usecols, nrows=nrows, values=False)
-    print(type(data))
-    print("data:", data)
+
+    # data = inquiry_excel_data(eval_sentence, file_name, sheet_name, skiprows, header, usecols=usecols, nrows=nrows, values=False)
+    # print(type(data))
+    # print("data:", data)
 
 
 if __name__ == "__main__":

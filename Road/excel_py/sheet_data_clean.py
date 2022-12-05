@@ -58,8 +58,6 @@ def clean_sheet_data(data_df: DataFrame) -> DataFrame:
     #     dataDf.to_excel(writer, sheet_name="sheet4")
     # quit()
 
-
-
     # 删除重复列索引，索引相同时判断值是否相等，如果不等则拼接到一起
     dataDf_dup: DataFrame = dataDf.iloc[:, dataDf.columns.duplicated(keep=False)]
     dataDf = dataDf.iloc[:, ~dataDf.columns.duplicated(keep="first")]
