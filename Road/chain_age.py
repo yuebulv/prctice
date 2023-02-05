@@ -39,3 +39,115 @@ def start_end_chainage_split_df(start_end_chainage_combined_df: DataFrame) -> Da
     dataDf['起点'] = dataDf['起点'].astype(float)
     dataDf['止点'] = dataDf['止点'].astype(float)
     return dataDf
+
+
+def switchBreakChainageToNoBreak(chainage,prjpath):
+    '''
+    :param chainage:
+    :param pathOfCtr:
+    :return:chainage(无断链)(float)或者返回''
+    '''
+    try:
+        chainage=chainage.strip().upper()
+    except:
+        chainage=str(chainage)
+    pathOfCtr=prjpath
+    if len(chainage)>0:
+        chainage=road.cutInvalidWords_chainage(chainage)
+        if len(chainage[0]) == 0:
+            return float(chainage[1])
+        if 65<=ord(chainage[0])<=90:
+            pass
+        else:
+            return float(chainage[1])
+        try:
+            ctrfile=open(pathOfCtr,'r')
+        except:
+            msgbox = road.gui_filenotfine(f'{pathOfCtr}文件不存在')
+            sys.exit()
+        else:
+            ctrfileData=ctrfile.read()
+            ctrfile.close()
+            regx = r'断链.+=(.+=.+)'
+            breakchainsInCtr=re.findall(regx,ctrfileData,re.MULTILINE)
+            # print(f'breakchainInCtr:{breakchainsInCtr}')
+            if len(breakchainsInCtr)>0:
+                breakchain_list=[]
+                for breakchainInCtr in breakchainsInCtr:
+                    breakchain=breakchainInCtr.split('=')
+                    breakchain_list.append(breakchain)
+                    # print(f'breakchain_list:{breakchain_list}')
+                correctionsOfChainage=0
+                for i in range(0,ord(chainage[0])-65):
+                    correctionsOfChainage=correctionsOfChainage+float(breakchain_list[i][0].strip())-float(breakchain_list[i][1].strip())
+                # print(f'correctionsOfChainage:{correctionsOfChainage}')
+                # print(chainage[1])
+                chainage_nobreak=float(chainage[1])+correctionsOfChainage
+                return chainage_nobreak
+            else:
+                return float(chainage[1])
+    else:
+        return ''
+
+    
+def switchNoBreakToBreakChainage(chainage,prjpath):
+    '''
+    :param chainage:
+    :param pathOfCtr:
+    :return:chainage(含断链)(float)或者返回''
+    '''
+    try:
+        chainage=chainage.strip().upper()
+    except:
+        chainage=str(chainage)
+    pathOfCtr=prjpath
+    if len(chainage)>0:
+        # chainage=road.cutInvalidWords_chainage(chainage)
+        # if 65<=ord(chainage[0])<=90:
+        #     pass
+        # else:
+        #     return chainage[1]
+        try:
+            ctrfile=open(pathOfCtr,'r')
+        except:
+            msgbox = road.gui_filenotfine(f'{pathOfCtr}文件不存在')
+            sys.exit()
+        else:
+            ctrfileData=ctrfile.read()
+            ctrfile.close()
+            regx = r'断链.+=(.+=.+)'
+            breakchainsInCtr=re.findall(regx,ctrfileData,re.MULTILINE)
+            # print(f'breakchainInCtr:{breakchainsInCtr}')
+            if len(breakchainsInCtr)>0:
+                breakchain_list=[]
+                chainage_actual = {}
+                chainage_Chain_before = {}
+                chainage_Chain_next = {}
+                for breakchainInCtr in breakchainsInCtr:
+                    breakchain=breakchainInCtr.split('=')
+                    breakchain_list.append(breakchain)
+                    # print(f'breakchain_list:{breakchain_list}')
+                correctionsOfChainage = 0
+                chainage_actual[0] = float(breakchain_list[0][0].strip())
+                chainage_Chain_next[0] = float(breakchain_list[0][1].strip())
+                i = 0
+                for i in range(1, len(breakchain_list)):
+                    correctionsOfChainage = correctionsOfChainage+float(breakchain_list[i-1][0].strip())-float(breakchain_list[i-1][1].strip())
+                    chainage_actual[i] = float(breakchain_list[i][0].strip()) + correctionsOfChainage
+                    chainage_Chain_before[i] = float(breakchain_list[i][0].strip())
+                    chainage_Chain_next[i] = float(breakchain_list[i][1].strip())
+                # print(f'correctionsOfChainage:{correctionsOfChainage}')
+                # print(chainage[1])
+                # print(f'chainage_actual[i]:{chainage_actual}')
+                while float(chainage) < chainage_actual[i]:
+                    i = i - 1
+                    if i<0:
+                        return chr(i+66) + str(round(float(chainage),3))
+                # print(i)
+                chainage = chainage_Chain_next[i] + float(chainage) - chainage_actual[i]
+                chainage_break = chr(i+66) + str(round(chainage,3))
+                return chainage_break
+            else:
+                return chainage
+    else:
+        return ''
