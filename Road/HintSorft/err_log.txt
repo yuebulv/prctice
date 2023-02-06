@@ -84,3 +84,15 @@
 	could not convert string to float: 
 	could not convert string to float: 
 	could not convert string to float: 
+起点 止点 位置 部位 加宽宽度 渐变率	could not convert string to float: '起点'
+	could not convert string to float: 
+	could not convert string to float: 
+	could not convert string to float: 
+	could not convert string to float: 
+	could not convert string to float: 
+起点 止点 位置 部位 加宽宽度 渐变率	could not convert string to float: '起点'
+	could not convert string to float: 
+	could not convert string to float: 
+	could not convert string to float: 
+	could not convert string to float: 
+	could not convert string to float: 
