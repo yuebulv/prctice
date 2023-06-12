@@ -676,9 +676,11 @@ def insertDataFrom3drToTableSlope(prjpath, chainage, prjname):
             print('drData_list', drData_list)
             #3.2确定路肩位置
             for i_drData_list in range(1, len(drData_list), 2):
-                print(f'tfData{[i_LOrR + 3]}:{tfData[i_LOrR + 3]}')
-                print(float(drData_list[i_drData_list]))
-                if abs(float(tfData[i_LOrR + 3])) == abs(float(drData_list[i_drData_list])):
+                # print(f'tfData{[i_LOrR + 3]}:{tfData[i_LOrR + 3]}')
+                # print(float(drData_list[i_drData_list]))
+                # if abs(float(tfData[i_LOrR + 3])) == abs(float(drData_list[i_drData_list])):
+                if round(abs(abs(float(tfData[i_LOrR + 3])) - abs(float(drData_list[i_drData_list]))), 4) <= 0.0005:
+                    # degug 20230610如果tf文件宽度数据3位小数，3dr中宽度为4位小数，用==会出错
                     roadShoulderPosition = (i_drData_list - 3) / 2  # 默认TF文件中第4、5列为路基左、右宽度
                     print(f'tfdata{i_LOrR + 3}列在cross_section{i_LOrR}中的位置：第', roadShoulderPosition, '组')
                     break
