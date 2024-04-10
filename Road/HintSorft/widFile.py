@@ -43,8 +43,8 @@ def read_wide_file(path):
 
 def wide_mile_range(start_mile, end_mile, changeWidth, changerate):
     try:
-        gradul_change_start = start_mile - changeWidth/changerate
-        gradul_change_end = end_mile + changeWidth/changerate
+        gradul_change_start = start_mile - abs(changeWidth/changerate)  # 取abs以适应changeWidth为负数情况
+        gradul_change_end = end_mile + abs(changeWidth/changerate)
     except ZeroDivisionError:
         gradul_change_start = start_mile
         gradul_change_end = end_mile
@@ -239,7 +239,7 @@ def main(wide_file_path, widen_range_file_path):
             continue
 
         wide_mile_range_list = wide_mile_range(widen_dic['start_mile'], widen_dic['end_mile'], widen_dic['changeWidth'], widen_dic['change_rate'])
-        # print(wide_mile_range_list)
+        # print(wide_mile_range_list) 宽度渐变起止点桩号[渐变起点，渐变止点，止点渐变起点，止点渐变止点]
         # print(widen_dic['change_rate'])
         new_wide_date = modify_wideFile(wide_mile_range_list, position=widen_dic['position'], change_width=widen_dic['changeWidth'], wide_file_data=list_file_data[widen_dic['LOR']])
         list_file_data[widen_dic['LOR']] = new_wide_date
