@@ -3,6 +3,8 @@
 一、从横断面图dwg中提到到设计线坐标等数据；（lisp程序功能）
     1、将横断面图中路床、路面结构、占地线删除
     2、只保留设计线、边沟、挡墙、桥隧、中心线、分离式路基中心线
+    3、横断面图间距调整大点
+    4、挡墙外水沟去除
 二、通过设计线坐标等数据得到EI数据的dat文件和are文件（本程序功能）
     一）、通过设计线坐标等数据得到EI数据的dat文件
         1、通过分离式路基线-中心线判断本路线与相交路线界线；
@@ -139,8 +141,11 @@ def grop_hdms_lines(hdm_data_path, layer_name_zxx='图层中心线', layer_name=
                 continue
         # 公路BIM V1.5版本生成的横断面文字注释格式与V1.2不同，引起hdm_lines[0]中含有设计高程的错误
         loc_debug_20210625 = hdm_lines[0].find('设计高程')
-        hdm_lines[1] = hdm_lines[1] + hdm_lines[0][loc_debug_20210625:-1]
-        hdm_lines[0] = hdm_lines[0][0:loc_debug_20210625]
+        # debug_20250112 hdm_lines[0]中如果没有设计高程，
+        # loc_debug_20210625修改会导致hdm_lines[0] = hdm_lines[0][0:loc_debug_20210625]中减少一位数字，如桩号少一位，从而导致错误；从而修改如下
+        if loc_debug_20210625 > 0:
+            hdm_lines[1] = hdm_lines[1] + hdm_lines[0][loc_debug_20210625:-1]
+            hdm_lines[0] = hdm_lines[0][0:loc_debug_20210625]
         regx_chainage_dig = r'(?<!0)\d+\.*\d*'
         chainage_dig = re.findall(regx_chainage_dig, hdm_lines[0], re.MULTILINE)
         chainage_dig = float("".join(chainage_dig))

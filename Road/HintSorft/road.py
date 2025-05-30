@@ -465,6 +465,11 @@ def switchBreakChainageToNoBreak(chainage,prjpath):
     pathOfCtr=prjpath
     if len(chainage)>0:
         chainage=road.cutInvalidWords_chainage(chainage)
+        # 20250115 debug list index out of range
+        try:
+            len(chainage[0])
+        except IndexError:
+            print(chainage)
         if len(chainage[0]) == 0:
             return float(chainage[1])
         if 65<=ord(chainage[0])<=90:
